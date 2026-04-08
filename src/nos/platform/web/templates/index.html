@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block page_title %}nOS{% endblock %}
+{% block extra_head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+{% endblock %}
+{% block extra_css %}
+    <style>
+        :root {
+            --fx-bg-dark: #0a0e17;
+            --fx-border: rgba(0, 212, 255, 0.25);
+            --fx-accent: #00d4ff;
+            --fx-text: #e2e8f0;
+            --fx-text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow-x: hidden; }
+        .landing-nos {
+            min-height: 100%;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            font-family: system-ui, sans-serif;
+            background: var(--fx-bg-dark);
+            background-image:
+                linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, transparent 45%),
+                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+            color: var(--fx-text);
+        }
+        .nos-n { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 400; }
+
+        .index-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            background: rgba(10, 14, 23, 0.95);
+            border-bottom: 1px solid var(--fx-border);
+            backdrop-filter: blur(12px);
+        }
+        .index-nav__left {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .index-nav__brand {
+            display: inline-flex;
+            align-items: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--fx-accent);
+            letter-spacing: 0.05em;
+            font-family: 'Orbitron', sans-serif;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.45rem 0.6rem;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+            text-decoration: none;
+        }
+        .index-nav__brand:hover { color: #fff; text-shadow: 0 0 15px rgba(0, 212, 255, 0.5); background: rgba(0, 212, 255, 0.08); }
+
+        .index-nav__links {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .index-nav__links a {
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            color: var(--fx-text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s, background 0.2s;
+        }
+        .index-nav__links a:hover {
+            color: var(--fx-accent);
+            background: rgba(0, 212, 255, 0.08);
+        }
+        .index-nav__login {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 10px;
+            color: var(--fx-accent);
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--fx-border);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .index-nav__login:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: var(--fx-accent);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.25);
+        }
+        .index-nav__login svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+        .index-nav__toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 40px; height: 40px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--fx-border);
+            border-radius: 8px;
+            color: var(--fx-accent);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .index-nav__toggle:hover { background: rgba(0, 212, 255, 0.2); }
+        .index-nav__toggle svg { width: 22px; height: 22px; }
+        .index-nav__menu-toggler { display: none; }
+        @media (max-width: 768px) {
+            .index-nav__links { display: none; }
+            .index-nav__links.index-nav__links--open {
+                display: flex;
+                position: fixed;
+                top: 52px; left: 0; right: 0;
+                flex-direction: column;
+                padding: 1rem;
+                background: rgba(10, 14, 23, 0.98);
+                border-bottom: 1px solid var(--fx-border);
+                z-index: 999;
+            }
+            .index-nav__links.index-nav__links--open a { padding: 0.65rem 1rem; width: 100%; }
+            .index-nav__menu-toggler { display: flex; }
+        }
+
+        .index-hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 5rem 1.5rem 3rem;
+            margin-top: 52px;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .index-hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 2.75rem);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--fx-accent);
+            margin-bottom: 0.75rem;
+        }
+        .index-hero h1 .nos-n { font-size: 0.92em; }
+        .index-hero__lead {
+            font-size: 1.125rem;
+            line-height: 1.65;
+            color: var(--fx-text);
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+        .index-hero__body {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--fx-text-muted);
+        }
+    </style>
+{% endblock %}
+{% block body %}
+<div class="landing-nos">
+    <nav class="index-nav" role="navigation">
+        <div class="index-nav__left">
+            <button type="button" class="index-nav__toggle index-nav__menu-toggler" id="index-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <a href="{{ url_for('web.index') }}" class="index-nav__brand" title="nOS home"><span class="nos-n">n</span>OS</a>
+            <div class="index-nav__links" id="index-nav-links">
+                <a href="{{ url_for('web.docs_101') }}" target="_blank" rel="noopener noreferrer">Docs</a>
+<a href="{{ url_for('web.download_page') }}" target="_blank" rel="noopener noreferrer">Download</a>
+            <a href="{{ url_for('web.app_page') }}" target="_blank" rel="noopener noreferrer">Apps</a>
+                <a href="https://github.com/seedx-lab/nos" target="_blank" rel="noopener noreferrer">Github</a>
+            </div>
+        </div>
+        <a href="{{ url_for('web.login_page') }}" class="index-nav__login" target="_blank" rel="noopener noreferrer" aria-label="Log in">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span>Log in</span>
+        </a>
+    </nav>
+    <main class="index-hero">
+        <h1><span class="nos-n">n</span>OS</h1>
+        <p class="index-hero__lead">Open-source platform for graph-native applications.</p>
+        <p class="index-hero__body">
+            One unified stack to design, connect, and run workflows as node graphs—compose logic as connected nodes, ship faster, and iterate without losing the big picture.
+        </p>
+    </main>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    var navToggle = document.getElementById('index-nav-toggle');
+    var navLinks = document.getElementById('index-nav-links');
+    if (navToggle && navLinks) {
+        navToggle.addEventListener('click', function () {
+            navLinks.classList.toggle('index-nav__links--open');
+            navToggle.setAttribute('aria-expanded', navLinks.classList.contains('index-nav__links--open'));
+        });
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+/**
+ * Global light theme — override --app-* when html[data-theme="light"].
+ * Load after app-theme.css. Works with any page that uses shared tokens.
+ */
+html[data-theme="light"] {
+    color-scheme: light;
+    --app-bg: #f1f5f9;
+    --app-bg-card: #ffffff;
+    --app-panel: #ffffff;
+    --app-panel-secondary: #e8eef5;
+    --app-border: rgba(15, 23, 42, 0.12);
+    --app-border-strong: rgba(2, 132, 199, 0.35);
+    --app-text: #0f172a;
+    --app-text-muted: #64748b;
+    --app-accent: #0284c7;
+    --app-accent-dim: rgba(2, 132, 199, 0.85);
+    --app-accent-subtle: rgba(2, 132, 199, 0.1);
+    --app-accent-hover: #0369a1;
+    --app-code-type: #0369a1;
+    --app-tree-active-bg: rgba(2, 132, 199, 0.14);
+    --app-theme-toggle-hover: rgba(2, 132, 199, 0.18);
+    --app-header-gradient: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    --app-warning: #b45309;
+    --app-error: #dc2626;
+    --app-error-subtle: rgba(220, 38, 38, 0.12);
+    --app-glow: 0 0 16px rgba(2, 132, 199, 0.08);
+}
+
+html[data-theme="light"] body {
+    background-image:
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(2, 132, 199, 0.06) 0%, transparent 50%);
+}
+
+html[data-theme="light"] .btn:hover,
+html[data-theme="light"] button[type="submit"]:hover {
+    background: rgba(2, 132, 199, 0.12);
+}
+
+html[data-theme="light"] input:focus,
+html[data-theme="light"] select:focus,
+html[data-theme="light"] textarea:focus {
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+/* wx-form-loader (shadow DOM reads these from host) */
+html[data-theme="light"] wx-form-loader {
+    --wx-fl-input-focus-shadow: 0 0 0 2px rgba(2, 132, 199, 0.22);
+}
+
+html[data-theme="light"] .docs-toc-sidebar .tree-children {
+    border-left-color: rgba(15, 23, 42, 0.1);
+}
+
+html[data-theme="light"] .docs-toc-sidebar .docs-toc-row:hover:not(.is-active) {
+    background: rgba(15, 23, 42, 0.04);
+}

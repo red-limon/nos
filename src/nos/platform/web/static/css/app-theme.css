@@ -1,0 +1,1308 @@
+/**
+ * nOS app theme (default palette: cyan / slate “nos”).
+ * Shared tokens for Flask templates, console, API docs, and components.
+ * Pair with theme-light.css for html[data-theme="light"].
+ * API docs shell is included below under body.docs-api-page.
+ *
+ * Excluded from this file: index.html (standalone), legacy run.html.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Orbitron:wght@500;600&display=swap');
+
+:root {
+    /* Core palette — default “nos” (dark) */
+    --app-bg: #0a0e17;
+    --app-bg-card: rgba(15, 23, 42, 0.9);
+    --app-panel: #0f172a;
+    --app-panel-secondary: #151b24;
+    --app-border: rgba(0, 212, 255, 0.2);
+    --app-border-strong: rgba(0, 212, 255, 0.35);
+    --app-text: #e2e8f0;
+    --app-text-muted: #94a3b8;
+    --app-accent: #00d4ff;
+    --app-accent-dim: rgba(0, 212, 255, 0.8);
+    --app-accent-subtle: rgba(0, 212, 255, 0.12);
+    --app-accent-hover: #38bdf8;
+    --app-code-type: #7dd3fc;
+    --app-tree-active-bg: rgba(0, 212, 255, 0.2);
+    --app-theme-toggle-hover: rgba(0, 212, 255, 0.2);
+    --app-header-gradient: linear-gradient(180deg, #0a1018 0%, #0b121a 100%);
+    --app-warning: #fbbf24;
+    --app-error: #f87171;
+    /** Subtle wash for docs code-line--error / anti-pattern highlights */
+    --app-error-subtle: rgba(248, 113, 113, 0.14);
+
+    /* Backward compatibility with terminal-theme variable names (for existing classes) */
+    --term-bg: var(--app-bg);
+    --term-panel: var(--app-panel);
+    --term-border: var(--app-border);
+    --term-text: var(--app-text);
+    --term-muted: var(--app-text-muted);
+    --term-accent: var(--app-accent);
+    --term-accent-blue: var(--app-accent-hover);
+    --term-warning: var(--app-warning);
+    --term-error: var(--app-error);
+
+    /* Layout */
+    --app-font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --app-font-heading: 'Orbitron', 'DM Sans', sans-serif;
+    --app-radius: 6px;
+    --app-radius-lg: 10px;
+    --app-glow: 0 0 16px rgba(0, 212, 255, 0.1);
+
+    /* API docs shell */
+    --docs-header-h: 52px;
+    --docs-sidebar-w: 280px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    min-height: 100%;
+    min-height: -webkit-fill-available;
+}
+
+/* Scrollbars / form controls: follow active palette */
+html[data-theme="nos"] {
+    color-scheme: dark;
+}
+
+body {
+    font-family: var(--app-font-body);
+    background: var(--app-bg);
+    background-image:
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0, 212, 255, 0.04) 0%, transparent 50%);
+    color: var(--app-text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Panels / Cards */
+.terminal-panel,
+.term-panel,
+.playground-content,
+.content,
+.engine,
+.dashboard,
+.page,
+.terminal {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--app-panel);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-lg);
+}
+
+.terminal-panel h2,
+.term-panel h2,
+.playground-content h2,
+.content h2,
+.engine h2,
+.dashboard h2,
+.page h2 {
+    font-family: var(--app-font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--app-accent);
+    margin-bottom: 1rem;
+}
+
+.terminal-panel p,
+.term-panel p,
+.playground-content p,
+.content p,
+.engine p,
+.page p {
+    color: var(--app-text-muted);
+    line-height: 1.6;
+}
+
+/* Links */
+a {
+    color: var(--app-accent-hover);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--app-accent);
+    text-decoration: underline;
+}
+
+/* Buttons */
+.btn,
+button[type="submit"] {
+    background: transparent;
+    color: var(--app-accent);
+    border: 1px solid var(--app-border-strong);
+    padding: 0.5rem 1rem;
+    font-family: var(--app-font-body);
+    cursor: pointer;
+    border-radius: var(--app-radius);
+    transition: background 0.2s, border-color 0.2s;
+}
+.btn:hover,
+button[type="submit"]:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--app-accent);
+}
+
+/* Forms */
+input, select, textarea {
+    box-sizing: border-box;
+    background: var(--app-bg);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
+    padding: 0.5rem 0.75rem;
+    font-family: inherit;
+    border-radius: var(--app-radius);
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--app-border);
+    text-align: left;
+}
+th {
+    background: var(--app-panel);
+    color: var(--app-accent);
+    font-weight: 600;
+}
+
+/* Input overrides */
+.term-input {
+    background: var(--app-bg) !important;
+    color: var(--app-text) !important;
+    border: 1px solid var(--app-border) !important;
+}
+
+/* wx-data-grid: app theme (shadow DOM inherits from host) */
+wx-data-grid {
+    --wx-dg-bg: var(--app-panel);
+    --wx-dg-text: var(--app-text);
+    --wx-dg-border: var(--app-border);
+    --wx-dg-row-even: var(--app-panel);
+    --wx-dg-row-odd: var(--app-bg);
+    --wx-dg-header-bg: var(--app-panel);
+    --wx-dg-icon-color: var(--app-accent);
+    --wx-dg-sort-btn-color: var(--app-accent);
+    --wx-dg-toolbar-btn-color: var(--app-accent);
+}
+
+/* wx-form-loader: app theme */
+wx-form-loader {
+    --wx-fl-bg: var(--app-panel);
+    --wx-fl-text: var(--app-text);
+    --wx-fl-border: var(--app-border);
+    --wx-fl-font-family: var(--app-font-body);
+    --wx-fl-form-shadow: none;
+    --wx-fl-form-radius: var(--app-radius);
+
+    --wx-fl-title-color: var(--app-accent);
+    --wx-fl-description-color: var(--app-text-muted);
+    --wx-fl-label-color: var(--app-text);
+    --wx-fl-required-color: var(--app-error);
+    --wx-fl-help-color: var(--app-text-muted);
+
+    --wx-fl-input-bg: var(--app-bg);
+    --wx-fl-input-color: var(--app-text);
+    --wx-fl-input-border: 1px solid var(--app-border);
+    --wx-fl-input-border-radius: var(--app-radius);
+    --wx-fl-input-focus-border-color: var(--app-accent);
+    --wx-fl-input-focus-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+    --wx-fl-input-disabled-bg: var(--app-panel);
+    --wx-fl-input-disabled-color: var(--app-text-muted);
+    --wx-fl-input-readonly-bg: var(--app-panel);
+    --wx-fl-input-readonly-color: var(--app-text);
+    --wx-fl-input-readonly-border: 1px solid var(--app-border);
+    --wx-fl-input-readonly-cursor: default;
+
+    --wx-fl-accent: var(--app-accent);
+    --wx-fl-accent-hover: var(--app-accent-hover);
+    --wx-fl-accent-foreground: var(--app-bg);
+
+    --wx-fl-password-toggle-bg: var(--app-bg);
+    --wx-fl-password-toggle-color: var(--app-text-muted);
+    --wx-fl-password-toggle-hover-color: var(--app-text);
+
+    --wx-fl-invalid-bg: rgba(248, 113, 113, 0.1);
+    --wx-fl-invalid-border: 1px solid var(--app-error);
+    --wx-fl-validation-msg-bg: rgba(248, 113, 113, 0.15);
+    --wx-fl-validation-msg-color: var(--app-error);
+    --wx-fl-validation-msg-border: 1px solid var(--app-error);
+
+    --wx-fl-btn-secondary-bg: var(--app-panel);
+    --wx-fl-btn-secondary-color: var(--app-text);
+    --wx-fl-btn-secondary-hover-bg: var(--app-border);
+    --wx-fl-btn-primary-bg: var(--app-accent);
+    --wx-fl-btn-primary-color: var(--app-bg);
+    --wx-fl-btn-primary-hover-bg: var(--app-accent-hover);
+
+    --wx-fl-tabs-border-color: var(--app-border);
+    --wx-fl-tab-active-color: var(--app-accent);
+    --wx-fl-tab-hover-color: var(--app-accent-hover);
+
+    --wx-fl-steps-header-border-color: var(--app-border);
+    --wx-fl-steps-counter-color: var(--app-text-muted);
+    --wx-fl-step-arrow-bg: transparent;
+    --wx-fl-step-arrow-hover-bg: var(--app-border);
+}
+
+/* Utility */
+.term-success { color: var(--app-accent); }
+.term-error { color: var(--app-error); }
+.term-warning { color: var(--app-warning); }
+.term-muted { color: var(--app-text-muted); }
+
+/* Base layout (error page, etc.) */
+.navbar {
+    background: var(--app-panel);
+    color: var(--app-accent);
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--app-border);
+}
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar h1 { font-size: 1.25rem; font-weight: 600; }
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 1.5rem;
+}
+.nav-links a {
+    color: var(--app-accent-hover);
+}
+.nav-links a:hover { color: var(--app-accent); }
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+main { min-height: calc(100vh - 200px); padding: 2rem 0; }
+.footer {
+    background: var(--app-panel);
+    color: var(--app-text-muted);
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--app-border);
+}
+.footer p { margin: 0; font-size: 0.9rem; }
+.error-page {
+    text-align: center;
+    padding: 3rem 0;
+}
+.error-page h2 {
+    font-size: 2.5rem;
+    color: var(--app-error);
+    margin-bottom: 1rem;
+}
+.error-page .error-message {
+    font-size: 1.1rem;
+    color: var(--app-text-muted);
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .terminal-panel, .term-panel, .playground-content, .content, .engine, .dashboard, .page {
+        padding: 1rem;
+        margin: 0 0.5rem 1rem;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* API docs layout — body.docs-api-page                                     */
+/* -------------------------------------------------------------------------- */
+body.docs-api-page {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--app-bg);
+    background-image: none;
+    color: var(--app-text);
+    line-height: 1.55;
+    min-height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    height: 100%;
+    overflow: hidden;
+}
+
+.nos-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--docs-header-h);
+    background: var(--app-header-gradient);
+    border-bottom: 1px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    z-index: 1000;
+}
+
+.nos-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nos-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    color: var(--app-text);
+}
+
+.nos-version {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--app-accent);
+    background: var(--app-accent-subtle);
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    border: 1px solid var(--app-border);
+}
+
+.nos-header__meta {
+    font-size: 0.8rem;
+    color: var(--app-text-muted);
+}
+
+.nos-shell {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    margin-top: var(--docs-header-h);
+    --docs-shell-h: calc(100vh - var(--docs-header-h));
+    height: var(--docs-shell-h);
+    min-height: var(--docs-shell-h);
+    max-height: var(--docs-shell-h);
+    overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+    .nos-shell {
+        --docs-shell-h: calc(100dvh - var(--docs-header-h));
+    }
+}
+
+.nos-sidebar {
+    width: var(--docs-sidebar-w);
+    min-width: 0;
+    min-height: 0;
+    flex-shrink: 0;
+    align-self: stretch;
+    background: var(--app-panel);
+    border-right: 1px solid var(--app-border);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.75rem 0;
+}
+
+.nos-sidebar-resizer {
+    width: 6px;
+    flex-shrink: 0;
+    align-self: stretch;
+    min-height: 0;
+    margin: 0 -2px;
+    cursor: col-resize;
+    background: transparent;
+    position: relative;
+    z-index: 2;
+    touch-action: none;
+}
+
+.nos-sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--app-border);
+    opacity: 0.65;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.nos-sidebar-resizer:hover::after,
+.nos-sidebar-resizer:focus-visible::after {
+    background: var(--app-accent);
+    opacity: 1;
+}
+
+.nos-sidebar-resizer:focus-visible {
+    outline: none;
+}
+
+.tree-node {
+    user-select: none;
+}
+
+.tree-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.6rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 0.35rem;
+    font-size: 0.88rem;
+}
+
+.tree-row:hover {
+    background: var(--app-accent-subtle);
+}
+
+.tree-row.is-active {
+    background: var(--app-tree-active-bg);
+    color: var(--app-accent);
+}
+
+.tree-row.is-folder {
+    font-weight: 500;
+}
+
+.tree-chevron {
+    width: 1rem;
+    height: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: var(--app-text-muted);
+    transition: transform 0.15s;
+}
+
+.tree-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.tree-chevron.placeholder {
+    visibility: hidden;
+}
+
+.tree-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+    opacity: 0.92;
+}
+
+.tree-children {
+    padding-left: 0.65rem;
+}
+
+.tree-children[hidden] {
+    display: none;
+}
+
+/* Documentation outline (docs_101) — TOC: expandable tree; siblings align via CSS grid (no inline styles). */
+.docs-toc-sidebar {
+    padding: 0.65rem 0.45rem 1.25rem;
+    --docs-toc-expand-w: 1.15rem;
+    --docs-toc-glyph-w: 1.1rem;
+    --docs-toc-col-gap: 0.4rem;
+}
+
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row.is-folder {
+    margin-top: 0.28rem;
+    margin-bottom: 0.06rem;
+    padding: 0.35rem 0.45rem 0.28rem;
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    border-left: none;
+    background: transparent;
+}
+
+/* Top-level chapter titles: must stay readable on dark panel (avoid --app-text-muted alone). */
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row.is-folder .tree-folder-label {
+    color: var(--app-text);
+}
+
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row.is-folder .tree-branch-toggle {
+    color: var(--app-accent-dim);
+}
+
+.docs-toc-sidebar .tree-node.tree-depth-0:first-child > .docs-toc-row.is-folder {
+    margin-top: 0;
+}
+
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row.is-folder:hover {
+    background: var(--app-accent-subtle);
+    color: var(--app-text);
+}
+
+/* Match top-level chapter rows: same typography as folder roots, not nested leaf styling */
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row:not(.is-folder) {
+    margin-top: 0.28rem;
+    margin-bottom: 0.06rem;
+    padding: 0.35rem 0.45rem 0.28rem;
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    border-left: none;
+    background: transparent;
+    color: var(--app-text);
+}
+
+.docs-toc-sidebar .tree-node.tree-depth-0 > .docs-toc-row:not(.is-folder):hover {
+    background: var(--app-accent-subtle);
+    color: var(--app-text);
+}
+
+/* docs_101 — execution error reference table (3 columns) */
+.nos-main .api-params--execution-errors td {
+    vertical-align: top;
+}
+
+.nos-main .api-params--execution-errors td:first-child {
+    white-space: nowrap;
+}
+
+.docs-toc-sidebar .tree-children {
+    margin-left: 0.2rem;
+    padding-left: 0.7rem;
+    border-left: 1px solid var(--app-border);
+    border-radius: 0 0 0 2px;
+}
+
+/*
+ * docs_101 sidebar tree: every row is the same 3-column grid (expand | glyph | label).
+ * Expand = fixed empty square (alignment). Glyph = type icon (leaf) OR branch toggler (replaces old folder icon).
+ */
+.docs-toc-sidebar .docs-toc-row {
+    display: grid;
+    grid-template-columns: var(--docs-toc-expand-w) var(--docs-toc-glyph-w) minmax(0, 1fr);
+    column-gap: var(--docs-toc-col-gap);
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0.05rem 0.15rem;
+    padding: 0.3rem 0.45rem 0.3rem 0.4rem;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+}
+
+/*
+ * First column: fixed empty square (leaf and branch) so label column lines up; toggler is in glyph column.
+ */
+.docs-toc-sidebar .docs-toc-row__expand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--docs-toc-expand-w);
+    min-width: var(--docs-toc-expand-w);
+    max-width: var(--docs-toc-expand-w);
+    height: var(--docs-toc-expand-w);
+    min-height: var(--docs-toc-expand-w);
+    max-height: var(--docs-toc-expand-w);
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.docs-toc-sidebar .docs-toc-row__expand .tree-branch-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.docs-toc-sidebar .docs-toc-row__glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+.docs-toc-sidebar .docs-toc-row__glyph .tree-icon,
+.docs-toc-sidebar .docs-toc-row__glyph-slot {
+    display: block;
+    width: var(--docs-toc-glyph-w);
+    height: var(--docs-toc-glyph-w);
+    flex-shrink: 0;
+}
+
+.docs-toc-sidebar .docs-toc-row__label {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Nested: typography only on label cell (grid tracks stay rem-based). */
+.docs-toc-sidebar .tree-node:not(.tree-depth-0) .docs-toc-row:not(.is-folder) .docs-toc-row__label {
+    font-size: 0.84rem;
+    font-weight: 400;
+}
+
+.docs-toc-sidebar .tree-node:not(.tree-depth-0) .docs-toc-row.is-folder .docs-toc-row__label,
+.docs-toc-sidebar .tree-node:not(.tree-depth-0) .docs-toc-row.is-folder .docs-toc-row__label .tree-folder-label {
+    font-weight: 500;
+    font-size: 0.86rem;
+    letter-spacing: normal;
+    color: var(--app-text);
+    text-transform: none;
+}
+
+.docs-toc-sidebar .docs-toc-row.is-active {
+    border-left-color: var(--app-accent);
+    background: var(--app-tree-active-bg);
+    color: var(--app-accent);
+}
+
+.docs-toc-sidebar .docs-toc-row:hover:not(.is-active) {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.docs-toc-sidebar .tree-branch-toggle {
+    -webkit-appearance: none;
+    appearance: none;
+    /* size when inside .docs-toc-row__glyph — see rules above */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--app-text-muted);
+    cursor: pointer;
+    line-height: 0;
+    vertical-align: middle;
+    font: inherit;
+}
+
+.docs-toc-sidebar .tree-branch-toggle:hover {
+    color: var(--app-accent);
+    background: var(--app-accent-subtle);
+}
+
+.docs-toc-sidebar .tree-branch-toggle:focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 1px;
+}
+
+.docs-toc-sidebar .tree-branch-toggle .tree-icon--caret {
+    width: 0.65rem;
+    height: 0.65rem;
+    transition: transform 0.15s ease;
+}
+
+.docs-toc-sidebar .tree-branch-toggle.expanded .tree-icon--caret {
+    transform: rotate(90deg);
+}
+
+.docs-toc-sidebar .tree-folder-label,
+.docs-toc-sidebar .tree-row__label {
+    display: block;
+    min-width: 0;
+}
+
+.nos-main {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    align-self: stretch;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.5rem 2rem 3rem;
+}
+
+.nos-main .api-card {
+    max-width: 920px;
+}
+
+.api-card[hidden] {
+    display: none !important;
+}
+
+.api-card__kind {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--app-accent);
+    border: 1px solid var(--app-border);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    margin-bottom: 0.4rem;
+}
+
+.api-card h1 {
+    font-size: 1.65rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+/* Guide pages: optional link badge(s) beside the title (docs_101 apiBadges). */
+.api-card__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1rem;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.api-card__title-row h1 {
+    margin-bottom: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.api-card__title-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.api-card.api-card--guide .api-card__api-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--app-accent);
+    border: 1px solid var(--app-border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.api-card.api-card--guide .api-card__api-badge:hover {
+    background: rgba(0, 212, 255, 0.12);
+    border-color: var(--app-accent);
+}
+
+[data-theme="light"] .api-card.api-card--guide .api-card__api-badge:hover {
+    background: rgba(2, 132, 199, 0.1);
+}
+
+.api-card.api-card--guide .api-card__api-badge:focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 2px;
+}
+
+.api-card .package {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--app-text-muted);
+    margin-bottom: 1rem;
+    word-break: break-all;
+}
+
+.api-card .lead {
+    color: var(--app-text);
+    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+}
+
+.api-card--guide .lead {
+    text-align: justify;
+    text-align-last: start;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+}
+
+/* Callout: chiusura / messaggio chiave nelle guide (es. Workflow Engine). */
+.api-card--guide .lead.lead--highlight {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    padding: 1rem 1.15rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--app-accent, #00d4ff);
+    background: rgba(0, 212, 255, 0.1);
+    text-align: start;
+    text-align-last: start;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+}
+
+[data-theme="light"] .api-card--guide .lead.lead--highlight {
+    background: rgba(2, 132, 199, 0.08);
+    border-left-color: var(--app-accent, #0284c7);
+}
+
+.api-card--guide .doc-lead-hr {
+    border: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    margin: 1.25rem 0;
+}
+
+[data-theme="light"] .api-card--guide .doc-lead-hr {
+    border-top-color: rgba(100, 116, 139, 0.35);
+}
+
+/* docs_101 — Python snippet in guide body (leadParagraphsAfter codeBlock). */
+.api-card--guide pre.doc-lead-code {
+    margin: 0.35rem 0 1.25rem;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    border: 1px solid var(--app-border);
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.api-card--guide pre.doc-lead-code code {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] .api-card--guide pre.doc-lead-code {
+    background: rgba(241, 245, 249, 0.95);
+}
+
+/* docs_101 — Python examples as tabs (labels = *.py module names). Guide + API reference cards. */
+.api-card .doc-example-tabs {
+    margin-top: 0.25rem;
+}
+
+.api-card .doc-example-tabs__bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+    align-items: center;
+}
+
+.api-card .doc-example-tabs__tab {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.35);
+    color: var(--app-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.api-card .doc-example-tabs__tab:hover {
+    color: var(--app-text);
+    border-color: rgba(0, 212, 255, 0.45);
+}
+
+.api-card .doc-example-tabs__tab[aria-selected="true"] {
+    color: var(--app-text);
+    background: rgba(0, 212, 255, 0.12);
+    border-color: var(--app-accent, #00d4ff);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+}
+
+.api-card .doc-example-tabs__panels {
+    min-height: 2rem;
+}
+
+/* Inline tab group inside guide body (e.g. Branches — Sequential links). */
+.api-card--guide .doc-guide-inline-tabs {
+    margin: 0.5rem 0 1.25rem;
+}
+
+.api-card--guide .doc-example-tabs__text--prose .lead:first-child {
+    margin-top: 0;
+}
+
+.api-card--guide .doc-example-tabs__text--prose .lead:last-child {
+    margin-bottom: 0;
+}
+
+.api-card--guide .doc-example-tabs__text--prose .lead-list {
+    margin-bottom: 0;
+}
+
+.api-card .doc-example-tabs__panel pre {
+    margin: 0;
+}
+
+[data-theme="light"] .api-card .doc-example-tabs__tab {
+    background: rgba(248, 250, 252, 0.9);
+    border-color: rgba(148, 163, 184, 0.45);
+    color: #475569;
+}
+
+[data-theme="light"] .api-card .doc-example-tabs__tab[aria-selected="true"] {
+    background: rgba(2, 132, 199, 0.1);
+    border-color: var(--app-accent, #0284c7);
+    color: #0f172a;
+}
+
+.api-card .lead code,
+.api-card--guide .lead code,
+.api-member__body .lead code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.88em;
+    font-weight: 500;
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.14);
+    color: var(--app-text);
+}
+
+.api-card--guide .lead-list__caption {
+    margin: 0.75rem 0 0.4rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--app-text);
+    text-align: start;
+}
+
+.api-card--guide .lead-list {
+    margin: 0 0 1.25rem 0;
+    padding-left: 1.35rem;
+    font-size: 0.95rem;
+    color: var(--app-text);
+    line-height: 1.55;
+    text-align: start;
+    list-style-type: disc;
+}
+
+/* Liste con etichette a), b), … — niente puntino elenco (la lettera identifica già la voce). */
+.api-card--guide .lead-list--lettered {
+    list-style: none;
+    padding-left: 0;
+}
+
+.api-card--guide .lead-list li {
+    margin-bottom: 0.35rem;
+    padding-left: 0.25rem;
+}
+
+.api-card--guide .lead-list li strong {
+    color: var(--app-text);
+    font-weight: 600;
+}
+
+.api-card--guide .lead-list .lead-list__term {
+    font-weight: 600;
+    color: var(--app-text);
+}
+
+.api-card--guide .doc-lead-see-also .doc-xref {
+    color: var(--app-accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.api-card--guide .doc-lead-see-also .doc-xref:hover {
+    text-decoration: underline;
+}
+
+.api-table-wrap {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+table.api-params {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+table.api-params th,
+table.api-params td {
+    border: 1px solid var(--app-border);
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+}
+
+table.api-params th {
+    background: var(--app-panel-secondary);
+    color: var(--app-text-muted);
+    font-weight: 500;
+}
+
+.doc-mapping-table__title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 1.25rem 0 0.5rem;
+    color: var(--app-text);
+}
+
+table.api-params.doc-mapping-table td.doc-mapping-table__cell-code {
+    vertical-align: top;
+    min-width: 14rem;
+}
+
+table.api-params.doc-mapping-table td.doc-mapping-table__cell-code pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+code.ty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    color: var(--app-code-type);
+}
+
+.api-returns {
+    margin: 1rem 0;
+    padding: 0.65rem 0.85rem;
+    background: var(--app-panel-secondary);
+    border-left: 3px solid var(--app-accent);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+}
+
+.api-returns strong {
+    color: var(--app-accent);
+}
+
+.api-examples {
+    margin-top: 1.5rem;
+}
+
+.api-examples h3 {
+    font-size: 0.85rem;
+    color: var(--app-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.65rem;
+}
+
+.api-examples .ex-block {
+    margin-bottom: 1.25rem;
+}
+
+.api-examples .ex-caption {
+    font-size: 0.82rem;
+    color: var(--app-text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.api-examples pre {
+    margin: 0;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.api-examples code.hljs {
+    padding: 1rem !important;
+}
+
+/* Docs examples: line-level callouts (substring match per line) */
+.ex-block .ex-code-line--highlight {
+    display: block;
+    margin: 0.1rem -1rem;
+    padding: 0.14rem 1rem 0.14rem 0.85rem;
+    border-left: 3px solid var(--app-accent);
+    background: var(--app-accent-subtle);
+    border-radius: 0 5px 5px 0;
+}
+
+/** Anti-pattern / error emphasis (reusable via highlightLinesErrorContaining in docs_101) */
+.ex-block .ex-code-line--error {
+    display: block;
+    margin: 0.1rem -1rem;
+    padding: 0.14rem 1rem 0.14rem 0.85rem;
+    border-left: 3px solid var(--app-error);
+    background: var(--app-error-subtle);
+    border-radius: 0 5px 5px 0;
+}
+
+.api-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--app-border);
+}
+
+.api-toolbar a {
+    color: var(--app-accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.api-toolbar a:hover {
+    text-decoration: underline;
+}
+
+.api-toolbar a[hidden] {
+    display: none;
+}
+
+.nos-empty {
+    color: var(--app-text-muted);
+    padding: 2rem;
+}
+
+.api-members {
+    margin-top: 1.5rem;
+}
+
+.api-members__title {
+    font-size: 0.85rem;
+    color: var(--app-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+}
+
+.api-member {
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: var(--app-panel-secondary);
+    overflow: hidden;
+}
+
+.api-member__summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    user-select: none;
+}
+
+.api-member__summary::-webkit-details-marker {
+    display: none;
+}
+
+.api-member__summary::before {
+    content: '?';
+    color: var(--app-text-muted);
+    font-size: 0.75rem;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+}
+
+.api-member[open] > .api-member__summary::before {
+    transform: rotate(90deg);
+}
+
+.api-member__summary .api-card__kind {
+    margin-bottom: 0;
+}
+
+.api-member__name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--app-text);
+}
+
+.api-member__sig {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--app-text-muted);
+    font-weight: 400;
+}
+
+.api-member__body {
+    padding: 0 0.85rem 0.85rem;
+    border-top: 1px solid var(--app-border);
+}
+
+.api-member__body .lead {
+    margin: 0.75rem 0 0.65rem;
+    font-size: 0.92rem;
+}
+
+.api-member__body .api-table-wrap:first-child {
+    margin-top: 0.65rem;
+}
+
+.api-member__body .api-examples {
+    margin-top: 1rem;
+}
+
+.nos-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nos-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.25rem;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--app-border);
+    background: var(--app-accent-subtle);
+    color: var(--app-text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.nos-theme-toggle:hover {
+    background: var(--app-theme-toggle-hover);
+    border-color: var(--app-accent);
+}
+
+.nos-theme-toggle:focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 2px;
+}
+
+.nos-theme-toggle__icon {
+    display: none;
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+html[data-theme="nos"] .nos-theme-toggle__icon--sun {
+    display: block;
+}
+
+html[data-theme="light"] .nos-theme-toggle__icon--moon {
+    display: block;
+}

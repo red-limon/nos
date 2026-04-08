@@ -1,0 +1,4725 @@
+/**
+ * Hythera Console Application - Core Functionality
+ * 
+ * This file contains all the core UI logic for the console:
+ * - Menu Bar management
+ * - Explorer Panel (file tree & outline)
+ * - Tab System
+ * - Console rendering functions
+ * - Code Editor management
+ * 
+ * Socket.IO event handling is in console-socket.js
+ */
+
+'use strict';
+
+/* ==========================================================================
+   IDE Menu Bar
+   ========================================================================== */
+(function() {
+    'use strict';
+
+    const menuState = {
+        openMenu: null,
+        currentTheme: 'default',
+        autosaveEnabled: false,
+        splitViewEnabled: false,
+        compactViewEnabled: false
+    };
+
+    const themes = {
+        'default': {
+            '--term-bg': '#1e1e2e',
+            '--term-fg': '#cdd6f4',
+            '--term-border': '#313244',
+            '--term-selection': '#45475a',
+            '--header-bg': '#11111b',
+            '--header-fg': '#cdd6f4',
+            '--log-info': '#89b4fa',
+            '--log-debug': '#a6adc8',
+            '--log-warning': '#f9e2af',
+            '--log-error': '#f38ba8',
+            '--log-success': '#a6e3a1'
+        },
+        'cursor-dark': {
+            '--term-bg': '#1a1a1a',
+            '--term-fg': '#d4d4d4',
+            '--term-border': '#333333',
+            '--term-selection': '#3a3a3a',
+            '--header-bg': '#0d0d0d',
+            '--header-fg': '#d4d4d4',
+            '--log-info': '#569cd6',
+            '--log-debug': '#858585',
+            '--log-warning': '#dcdcaa',
+            '--log-error': '#f14c4c',
+            '--log-success': '#4ec9b0'
+        },
+        'cursor-light': {
+            '--term-bg': '#ffffff',
+            '--term-fg': '#333333',
+            '--term-border': '#e0e0e0',
+            '--term-selection': '#e8e8e8',
+            '--header-bg': '#f5f5f5',
+            '--header-fg': '#333333',
+            '--log-info': '#0066cc',
+            '--log-debug': '#666666',
+            '--log-warning': '#b58900',
+            '--log-error': '#dc322f',
+            '--log-success': '#2aa198'
+        },
+        'vs-dark': {
+            '--term-bg': '#1e1e1e',
+            '--term-fg': '#d4d4d4',
+            '--term-border': '#404040',
+            '--term-selection': '#264f78',
+            '--header-bg': '#252526',
+            '--header-fg': '#cccccc',
+            '--log-info': '#569cd6',
+            '--log-debug': '#808080',
+            '--log-warning': '#dcdcaa',
+            '--log-error': '#f14c4c',
+            '--log-success': '#4ec9b0'
+        },
+        'abyss': {
+            '--term-bg': '#000c18',
+            '--term-fg': '#6688cc',
+            '--term-border': '#0a1929',
+            '--term-selection': '#1a3a5c',
+            '--header-bg': '#000814',
+            '--header-fg': '#6688cc',
+            '--log-info': '#6688cc',
+            '--log-debug': '#406385',
+            '--log-warning': '#ddbb88',
+            '--log-error': '#ff4444',
+            '--log-success': '#22aa44'
+        },
+        'vs-light': {
+            '--term-bg': '#ffffff',
+            '--term-fg': '#000000',
+            '--term-border': '#e8e8e8',
+            '--term-selection': '#add6ff',
+            '--header-bg': '#f3f3f3',
+            '--header-fg': '#000000',
+            '--log-info': '#0066cc',
+            '--log-debug': '#808080',
+            '--log-warning': '#b89500',
+            '--log-error': '#a31515',
+            '--log-success': '#008000'
+        },
+        'tomorrow-blue': {
+            '--term-bg': '#002451',
+            '--term-fg': '#ffffff',
+            '--term-border': '#003a70',
+            '--term-selection': '#003f8e',
+            '--header-bg': '#001e3d',
+            '--header-fg': '#ffffff',
+            '--log-info': '#bbdaff',
+            '--log-debug': '#7285b7',
+            '--log-warning': '#ffeead',
+            '--log-error': '#ff9da4',
+            '--log-success': '#d1f1a9'
+        }
+    };
+
+    function closeAllMenus() {
+        document.querySelectorAll('.menu-item').forEach(function(item) {
+            item.classList.remove('open');
+        });
+        menuState.openMenu = null;
+    }
+
+    function toggleMenu(menuItem) {
+        const isOpen = menuItem.classList.contains('open');
+        closeAllMenus();
+        if (!isOpen) {
+            menuItem.classList.add('open');
+            menuState.openMenu = menuItem;
+        }
+    }
+
+    function applyTheme(themeName) {
+        const theme = themes[themeName];
+        if (!theme) return;
+
+        const root = document.documentElement;
+        Object.keys(theme).forEach(function(prop) {
+            root.style.setProperty(prop, theme[prop]);
+        });
+
+        document.body.classList.remove(
+            'theme-default', 
+            'theme-cursor-light', 
+            'theme-cursor-dark',
+            'theme-vs-dark',
+            'theme-abyss',
+            'theme-vs-light',
+            'theme-tomorrow-blue'
+        );
+        document.body.classList.add('theme-' + themeName);
+
+        document.querySelectorAll('[data-theme]').forEach(function(btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-theme') === themeName);
+        });
+
+        menuState.currentTheme = themeName;
+        localStorage.setItem('orkestro-theme', themeName);
+    }
+
+    function toggleCompactView() {
+        menuState.compactViewEnabled = !menuState.compactViewEnabled;
+        document.body.classList.toggle('compact-view', menuState.compactViewEnabled);
+        const btn = document.getElementById('menu-compact-view');
+        if (btn) {
+            btn.classList.toggle('active', menuState.compactViewEnabled);
+        }
+        localStorage.setItem('orkestro-compact-view', menuState.compactViewEnabled);
+    }
+
+    function toggleAutosave() {
+        menuState.autosaveEnabled = !menuState.autosaveEnabled;
+        const btn = document.getElementById('menu-autosave');
+        if (btn) {
+            btn.classList.toggle('active', menuState.autosaveEnabled);
+        }
+        localStorage.setItem('orkestro-autosave', menuState.autosaveEnabled);
+    }
+
+    function toggleSplitView() {
+        menuState.splitViewEnabled = !menuState.splitViewEnabled;
+        document.body.classList.toggle('layout-split', menuState.splitViewEnabled);
+        
+        const btn = document.getElementById('menu-split-view');
+        if (btn) {
+            btn.classList.toggle('active', menuState.splitViewEnabled);
+        }
+        
+        localStorage.setItem('orkestro-split-view', menuState.splitViewEnabled);
+        
+        if (menuState.splitViewEnabled) {
+            initSplitResizer();
+            restoreSplitRatio();
+            syncContentToSplit();
+        }
+    }
+
+    function initSplitResizer() {
+        const resizer = document.getElementById('split-resizer');
+        const leftPanel = document.getElementById('split-panel-console');
+        const rightPanel = document.getElementById('split-panel-code');
+        const container = document.getElementById('split-container');
+        
+        if (!resizer || !leftPanel || !rightPanel || !container) return;
+        
+        let isDragging = false;
+        
+        resizer.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const offsetX = e.clientX - containerRect.left;
+            
+            let leftPercent = (offsetX / containerWidth) * 100;
+            leftPercent = Math.max(15, Math.min(85, leftPercent));
+            const rightPercent = 100 - leftPercent;
+            
+            leftPanel.style.flex = '0 0 ' + leftPercent + '%';
+            rightPanel.style.flex = '0 0 ' + rightPercent + '%';
+            
+            localStorage.setItem('orkestro-split-ratio', leftPercent);
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+    }
+
+    function restoreSplitRatio() {
+        const savedRatio = localStorage.getItem('orkestro-split-ratio');
+        if (savedRatio) {
+            const leftPercent = parseFloat(savedRatio);
+            const rightPercent = 100 - leftPercent;
+            const leftPanel = document.getElementById('split-panel-console');
+            const rightPanel = document.getElementById('split-panel-code');
+            
+            if (leftPanel && rightPanel) {
+                leftPanel.style.flex = '0 0 ' + leftPercent + '%';
+                rightPanel.style.flex = '0 0 ' + rightPercent + '%';
+            }
+        }
+    }
+
+    function syncContentToSplit() {
+        window.dispatchEvent(new CustomEvent('split-view-enabled'));
+    }
+
+    function init() {
+        document.querySelectorAll('.menu-trigger').forEach(function(trigger) {
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleMenu(trigger.parentElement);
+            });
+        });
+
+        document.querySelectorAll('.menu-item').forEach(function(item) {
+            item.addEventListener('mouseenter', function() {
+                if (menuState.openMenu && menuState.openMenu !== item) {
+                    closeAllMenus();
+                    item.classList.add('open');
+                    menuState.openMenu = item;
+                }
+            });
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.menu-item')) {
+                closeAllMenus();
+            }
+        });
+
+        const btnReconnect = document.getElementById('menu-reconnect');
+        if (btnReconnect) {
+            btnReconnect.addEventListener('click', function() {
+                window.dispatchEvent(new CustomEvent('menu-reconnect'));
+                closeAllMenus();
+            });
+        }
+
+        const btnNewWindow = document.getElementById('menu-new-window');
+        if (btnNewWindow) {
+            btnNewWindow.addEventListener('click', function() {
+                window.open(window.location.href, '_blank');
+                closeAllMenus();
+            });
+        }
+
+        const btnClose = document.getElementById('menu-close');
+        if (btnClose) {
+            btnClose.addEventListener('click', function() {
+                window.close();
+            });
+        }
+
+        document.querySelectorAll('[data-theme]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                applyTheme(btn.getAttribute('data-theme'));
+                closeAllMenus();
+            });
+        });
+
+        const btnCompactView = document.getElementById('menu-compact-view');
+        if (btnCompactView) {
+            btnCompactView.addEventListener('click', function() {
+                toggleCompactView();
+                closeAllMenus();
+            });
+        }
+
+        const btnAutosave = document.getElementById('menu-autosave');
+        if (btnAutosave) {
+            btnAutosave.addEventListener('click', function() {
+                toggleAutosave();
+                closeAllMenus();
+            });
+        }
+        
+        document.querySelectorAll('[data-runmode]').forEach(function(opt) {
+            opt.addEventListener('click', function() {
+                const mode = this.dataset.runmode;
+                document.querySelectorAll('[data-runmode]').forEach(function(o) {
+                    o.classList.remove('active');
+                });
+                this.classList.add('active');
+                localStorage.setItem('orkestro-run-mode', mode);
+                window.dispatchEvent(new CustomEvent('run-mode-changed', { detail: { mode: mode } }));
+                closeAllMenus();
+            });
+        });
+
+        // Output Mode preference (debug/trace)
+        document.querySelectorAll('[data-outputmode]').forEach(function(opt) {
+            opt.addEventListener('click', function() {
+                const mode = this.dataset.outputmode;
+                document.querySelectorAll('[data-outputmode]').forEach(function(o) {
+                    o.classList.remove('active');
+                });
+                this.classList.add('active');
+                localStorage.setItem('orkestro-output-mode', mode);
+                window.dispatchEvent(new CustomEvent('output-mode-changed', { detail: { mode: mode } }));
+                closeAllMenus();
+            });
+        });
+
+        const savedTheme = localStorage.getItem('orkestro-theme');
+        if (savedTheme && themes[savedTheme]) {
+            applyTheme(savedTheme);
+        }
+
+        const savedAutosave = localStorage.getItem('orkestro-autosave');
+        if (savedAutosave === 'true') {
+            menuState.autosaveEnabled = true;
+            const btn = document.getElementById('menu-autosave');
+            if (btn) btn.classList.add('active');
+        }
+
+        const savedCompactView = localStorage.getItem('orkestro-compact-view');
+        if (savedCompactView === 'true') {
+            menuState.compactViewEnabled = true;
+            document.body.classList.add('compact-view');
+            const btn = document.getElementById('menu-compact-view');
+            if (btn) btn.classList.add('active');
+        }
+        
+        const savedRunMode = localStorage.getItem('orkestro-run-mode') || 'direct';
+        document.querySelectorAll('[data-runmode]').forEach(function(opt) {
+            opt.classList.toggle('active', opt.dataset.runmode === savedRunMode);
+        });
+
+        // Restore Output Mode preference
+        const savedOutputMode = localStorage.getItem('orkestro-output-mode') || 'debug';
+        document.querySelectorAll('[data-outputmode]').forEach(function(opt) {
+            opt.classList.toggle('active', opt.dataset.outputmode === savedOutputMode);
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+                e.preventDefault();
+                window.open(window.location.href, '_blank');
+            }
+            if (e.ctrlKey && e.key === '\\') {
+                e.preventDefault();
+                toggleSplitView();
+            }
+        });
+
+        const btnSplitView = document.getElementById('menu-split-view');
+        if (btnSplitView) {
+            btnSplitView.addEventListener('click', function() {
+                toggleSplitView();
+                closeAllMenus();
+            });
+        }
+
+        const savedSplitView = localStorage.getItem('orkestro-split-view');
+        if (savedSplitView === 'true') {
+            menuState.splitViewEnabled = true;
+            document.body.classList.add('layout-split');
+            const btn = document.getElementById('menu-split-view');
+            if (btn) btn.classList.add('active');
+            initSplitResizer();
+            restoreSplitRatio();
+            setTimeout(function() {
+                syncContentToSplit();
+            }, 500);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+/* ==========================================================================
+   Explorer Panel - File Tree & Outline
+   ========================================================================== */
+(function() {
+    'use strict';
+
+    const explorerState = {
+        isOpen: false,
+        fileTree: null,
+        currentFile: null,
+        currentOutline: []
+    };
+
+    const explorerDom = {
+        offcanvas: document.getElementById('explorer-offcanvas'),
+        backdrop: document.getElementById('explorer-backdrop'),
+        closeBtn: document.getElementById('explorer-close'),
+        menuToggle: document.getElementById('menu-explorer'),
+        fileTree: document.getElementById('file-tree'),
+        outlineTree: document.getElementById('outline-tree'),
+        resizer: document.getElementById('explorer-resizer'),
+        filesPanel: document.getElementById('explorer-files-panel'),
+        outlinePanel: document.getElementById('explorer-outline-panel')
+    };
+
+    function toggleExplorer() {
+        explorerState.isOpen = !explorerState.isOpen;
+        
+        if (explorerState.isOpen) {
+            explorerDom.offcanvas.classList.add('open');
+            explorerDom.backdrop.classList.add('open');
+            explorerDom.menuToggle.classList.add('checked');
+            
+            if (!explorerState.fileTree) {
+                loadFileTree();
+            }
+        } else {
+            explorerDom.offcanvas.classList.remove('open');
+            explorerDom.backdrop.classList.remove('open');
+            explorerDom.menuToggle.classList.remove('checked');
+        }
+    }
+
+    async function loadFileTree() {
+        explorerDom.fileTree.innerHTML = '<div class="tree-loading">Loading files</div>';
+        
+        try {
+            const response = await fetch('/api/plugins/tree');
+            if (!response.ok) throw new Error('Failed to load file tree');
+            
+            const data = await response.json();
+            explorerState.fileTree = data.tree;
+            renderFileTree(data.tree);
+        } catch (error) {
+            console.error('Failed to load file tree:', error);
+            explorerDom.fileTree.innerHTML = '<div class="tree-loading" style="color: var(--log-error);">Failed to load files</div>';
+        }
+    }
+
+    const folderLabelMap = {
+        'workflows': 'models'
+    };
+
+    function renderFileTree(tree, container = null, depth = 0) {
+        if (!container) {
+            explorerDom.fileTree.innerHTML = '';
+            container = explorerDom.fileTree;
+        }
+
+        tree.forEach(item => {
+            if (item.type === 'folder') {
+                const folderEl = document.createElement('div');
+                folderEl.className = 'tree-folder';
+                folderEl.dataset.path = item.path;
+                
+                const displayLabel = folderLabelMap[item.name] || item.name;
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'tree-item';
+                itemEl.innerHTML = `
+                    ${'<span class="tree-indent"></span>'.repeat(depth)}
+                    <span class="tree-icon folder">📁</span>
+                    <span class="tree-label">${displayLabel}</span>
+                `;
+                
+                itemEl.addEventListener('click', () => {
+                    folderEl.classList.toggle('expanded');
+                    const icon = itemEl.querySelector('.tree-icon');
+                    icon.textContent = folderEl.classList.contains('expanded') ? '📂' : '📁';
+                    icon.classList.toggle('folder-open', folderEl.classList.contains('expanded'));
+                });
+                
+                folderEl.appendChild(itemEl);
+                
+                if (item.children && item.children.length > 0) {
+                    const childContainer = document.createElement('div');
+                    childContainer.className = 'tree-folder-children';
+                    renderFileTree(item.children, childContainer, depth + 1);
+                    folderEl.appendChild(childContainer);
+                }
+                
+                container.appendChild(folderEl);
+            } else if (item.type === 'file') {
+                const fileEl = document.createElement('div');
+                fileEl.className = 'tree-item';
+                fileEl.dataset.path = item.path;
+                fileEl.dataset.modulePath = item.module_path || '';
+                fileEl.innerHTML = `
+                    ${'<span class="tree-indent"></span>'.repeat(depth)}
+                    <span class="tree-icon file-python">🐍</span>
+                    <span class="tree-label">${item.name}</span>
+                `;
+                
+                fileEl.addEventListener('click', () => selectFile(fileEl, item));
+                container.appendChild(fileEl);
+            }
+        });
+    }
+
+    function selectFile(element, item) {
+        explorerDom.fileTree.querySelectorAll('.tree-item.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+        element.classList.add('selected');
+        
+        explorerState.currentFile = item;
+        
+        if (item.module_path) {
+            const pluginType = item.module_path.includes('.workflows.') ? 'workflow' : 'node';
+            const cmd = `open ${pluginType} ${item.module_path}`;
+            window.dispatchEvent(new CustomEvent('console-command', { detail: { command: cmd } }));
+        }
+        
+        loadOutline(item.path);
+    }
+
+    async function loadOutline(filePath) {
+        explorerDom.outlineTree.innerHTML = '<div class="tree-loading">Parsing</div>';
+        
+        try {
+            const response = await fetch(`/api/plugins/outline?path=${encodeURIComponent(filePath)}`);
+            if (!response.ok) throw new Error('Failed to load outline');
+            
+            const data = await response.json();
+            explorerState.currentOutline = data.outline;
+            renderOutline(data.outline);
+        } catch (error) {
+            console.error('Failed to load outline:', error);
+            explorerDom.outlineTree.innerHTML = '<div class="outline-empty">Could not parse file</div>';
+        }
+    }
+
+    function renderOutline(outline) {
+        if (!outline || outline.length === 0) {
+            explorerDom.outlineTree.innerHTML = '<div class="outline-empty">No symbols found</div>';
+            return;
+        }
+
+        explorerDom.outlineTree.innerHTML = '';
+        
+        outline.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'outline-item';
+            el.dataset.line = item.line;
+            
+            let icon = 'V';
+            let iconClass = 'variable';
+            
+            if (item.type === 'class') {
+                icon = 'C';
+                iconClass = 'class';
+            } else if (item.type === 'method') {
+                icon = 'M';
+                iconClass = 'method';
+            } else if (item.type === 'function') {
+                icon = 'F';
+                iconClass = 'function';
+            }
+            
+            const indent = '<span class="tree-indent"></span>'.repeat(item.depth || 0);
+            
+            el.innerHTML = `
+                ${indent}
+                <span class="outline-icon ${iconClass}">${icon}</span>
+                <span class="outline-label">${item.name}</span>
+                <span class="outline-line">:${item.line}</span>
+            `;
+            
+            el.addEventListener('click', () => {
+                window.dispatchEvent(new CustomEvent('editor-goto-line', { detail: { line: item.line } }));
+                
+                explorerDom.outlineTree.querySelectorAll('.outline-item.active').forEach(i => {
+                    i.classList.remove('active');
+                });
+                el.classList.add('active');
+            });
+            
+            explorerDom.outlineTree.appendChild(el);
+        });
+    }
+
+    function updateOutlineFromCode(code) {
+        if (!code) {
+            explorerDom.outlineTree.innerHTML = '<div class="outline-empty">Open a file to see its outline</div>';
+            return;
+        }
+
+        const outline = parseCodeOutline(code);
+        explorerState.currentOutline = outline;
+        renderOutline(outline);
+    }
+
+    function parseCodeOutline(code) {
+        const outline = [];
+        const lines = code.split('\n');
+        let currentClass = null;
+
+        lines.forEach((line, index) => {
+            const lineNum = index + 1;
+            
+            const classMatch = line.match(/^class\s+(\w+)/);
+            if (classMatch) {
+                currentClass = classMatch[1];
+                outline.push({
+                    type: 'class',
+                    name: classMatch[1],
+                    line: lineNum,
+                    depth: 0
+                });
+                return;
+            }
+            
+            const funcMatch = line.match(/^(\s*)def\s+(\w+)\s*\(/);
+            if (funcMatch) {
+                const indent = funcMatch[1].length;
+                const name = funcMatch[2];
+                const isMethod = indent > 0 && currentClass;
+                
+                outline.push({
+                    type: isMethod ? 'method' : 'function',
+                    name: name,
+                    line: lineNum,
+                    depth: isMethod ? 1 : 0,
+                    parent: isMethod ? currentClass : null
+                });
+            }
+        });
+
+        return outline;
+    }
+
+    function initExplorerResizer() {
+        const resizer = explorerDom.resizer;
+        const topPanel = explorerDom.filesPanel;
+        const bottomPanel = explorerDom.outlinePanel;
+        const container = document.querySelector('.explorer-content');
+        
+        if (!resizer || !topPanel || !bottomPanel || !container) return;
+        
+        let isDragging = false;
+        
+        resizer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'ns-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const containerRect = container.getBoundingClientRect();
+            const offsetY = e.clientY - containerRect.top;
+            const containerHeight = containerRect.height;
+            
+            let topPercent = (offsetY / containerHeight) * 100;
+            topPercent = Math.max(20, Math.min(80, topPercent));
+            const bottomPercent = 100 - topPercent;
+            
+            topPanel.style.flex = `0 0 ${topPercent}%`;
+            bottomPanel.style.flex = `0 0 ${bottomPercent}%`;
+            
+            localStorage.setItem('orkestro-explorer-ratio', topPercent);
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+        
+        const savedRatio = localStorage.getItem('orkestro-explorer-ratio');
+        if (savedRatio) {
+            const ratio = parseFloat(savedRatio);
+            topPanel.style.flex = `0 0 ${ratio}%`;
+            bottomPanel.style.flex = `0 0 ${100 - ratio}%`;
+        }
+    }
+
+    function initPanelCollapse() {
+        document.querySelectorAll('.explorer-panel-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const panel = header.closest('.explorer-panel');
+                panel.classList.toggle('collapsed');
+            });
+        });
+    }
+
+    function init() {
+        if (explorerDom.menuToggle) {
+            explorerDom.menuToggle.addEventListener('click', () => {
+                toggleExplorer();
+            });
+        }
+        
+        if (explorerDom.closeBtn) {
+            explorerDom.closeBtn.addEventListener('click', toggleExplorer);
+        }
+        
+        if (explorerDom.backdrop) {
+            explorerDom.backdrop.addEventListener('click', toggleExplorer);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                toggleExplorer();
+            }
+        });
+        
+        window.addEventListener('code-editor-loaded', (e) => {
+            if (e.detail && e.detail.content) {
+                updateOutlineFromCode(e.detail.content);
+            }
+        });
+        
+        window.addEventListener('code-editor-change', () => {
+            if (window.__codeEditor) {
+                updateOutlineFromCode(window.__codeEditor.value);
+            }
+        });
+        
+        initExplorerResizer();
+        initPanelCollapse();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    window.explorerPanel = {
+        toggle: toggleExplorer,
+        loadFileTree: loadFileTree,
+        updateOutline: updateOutlineFromCode
+    };
+})();
+
+/* ==========================================================================
+   Tab System
+   ========================================================================== */
+(function() {
+    'use strict';
+    
+    function showTab(name) {
+        document.querySelectorAll('.panel-tab').forEach(function(p) { 
+            p.classList.remove('active'); 
+        });
+        document.querySelectorAll('.panel-tabs button').forEach(function(b) { 
+            b.classList.remove('active'); 
+        });
+        var tab = document.getElementById('tab-' + name);
+        var btn = document.querySelector('.panel-tabs button[data-tab="' + name + '"]');
+        if (tab) tab.classList.add('active');
+        if (btn) btn.classList.add('active');
+    }
+    
+    document.querySelectorAll('.panel-tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() { 
+            showTab(btn.getAttribute('data-tab')); 
+        });
+    });
+    
+    window.showTab = showTab;
+})();
+
+/* ==========================================================================
+   Console Application - Core (UI and Rendering)
+   ========================================================================== */
+(function() {
+    'use strict';
+
+    const CONFIG = {
+        maxEntries: 1000,
+        autoScrollThreshold: 50
+    };
+
+    const state = {
+        socket: null,
+        autoScroll: true,
+        eventCount: 0,
+        connected: false,
+        cmdHistory: [],
+        cmdHistoryIndex: -1,
+        currentPrompt: null,
+        splitPrompt: null,
+        progressElements: [],
+        filterLevels: {
+            debug: true,
+            info: true,
+            success: true,
+            warning: true,
+            error: true
+        },
+        currentExecutionId: null
+    };
+
+    const dom = {
+        output: document.getElementById('console-output'),
+        splitOutput: document.getElementById('split-console-output'),
+        empty: document.getElementById('console-empty'),
+        statusDot: document.getElementById('status-dot'),
+        statusText: document.getElementById('status-text'),
+        btnClear: document.getElementById('btn-clear'),
+        btnScroll: document.getElementById('btn-scroll'),
+        btnFilter: document.getElementById('btn-filter'),
+        filterDropdown: document.getElementById('filter-dropdown'),
+        splitBtnClear: document.getElementById('split-btn-clear'),
+        splitBtnScroll: document.getElementById('split-btn-scroll'),
+        splitBtnFilter: document.getElementById('split-btn-filter'),
+        splitFilterDropdown: document.getElementById('split-filter-dropdown')
+    };
+
+    // Utility Functions
+    function formatTime(ts) {
+        const date = typeof ts === 'number' 
+            ? new Date(ts * 1000) 
+            : new Date(ts);
+        return date.toLocaleTimeString('en-US', { 
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }) + '.' + String(date.getMilliseconds()).padStart(3, '0');
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
+     * Copy text to clipboard with visual feedback
+     */
+    function copyToClipboard(text, button) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Success feedback
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="copy-icon">✓</span><span class="copy-label">Copied!</span>';
+            button.classList.add('copy-success');
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove('copy-success');
+            }, 1500);
+        }).catch(err => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                button.innerHTML = '<span class="copy-icon">✓</span><span class="copy-label">Copied!</span>';
+                button.classList.add('copy-success');
+                setTimeout(() => {
+                    button.innerHTML = '<span class="copy-icon">⧉</span><span class="copy-label">Copy</span>';
+                    button.classList.remove('copy-success');
+                }, 1500);
+            } catch (e) {
+                console.error('Copy failed:', e);
+            }
+            document.body.removeChild(textarea);
+        });
+    }
+
+    /**
+     * Create a copy button element
+     */
+    function createCopyButton(textToCopy) {
+        const btn = document.createElement('button');
+        btn.className = 'output-copy-btn';
+        btn.title = 'Copy to clipboard';
+        btn.innerHTML = '<span class="copy-icon">⧉</span><span class="copy-label">Copy</span>';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(textToCopy, btn);
+        });
+        return btn;
+    }
+
+    function formatJson(obj) {
+        try {
+            return JSON.stringify(obj, null, 2);
+        } catch (e) {
+            return String(obj);
+        }
+    }
+
+    function isScrolledToBottom() {
+        const { scrollTop, scrollHeight, clientHeight } = dom.output;
+        return scrollHeight - scrollTop - clientHeight < CONFIG.autoScrollThreshold;
+    }
+
+    function scrollToBottom() {
+        dom.output.scrollTop = dom.output.scrollHeight;
+    }
+
+    // Log Entry Rendering
+    function createLogEntry(data) {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        
+        const level = (data.level || 'info').toLowerCase();
+        entry.setAttribute('data-level', level);
+        const event = data.event || 'custom';
+        const timestamp = data.timestamp || data.datetime || Date.now() / 1000;
+        const message = data.message || '';
+        const nodeId = data.node_id;
+        const workflowId = data.workflow_id;
+        
+        let source = '';
+        if (nodeId) source = `node:${nodeId}`;
+        else if (workflowId) source = `workflow:${workflowId}`;
+
+        const hasData = data && Object.keys(data).length > 0;
+
+        // Create header elements
+        const timestampSpan = document.createElement('span');
+        timestampSpan.className = 'log-timestamp';
+        timestampSpan.textContent = formatTime(timestamp);
+        
+        const levelSpan = document.createElement('span');
+        levelSpan.className = `log-level log-level--${level}`;
+        levelSpan.textContent = level;
+        
+        const eventSpan = document.createElement('span');
+        eventSpan.className = `log-event log-event--${event}`;
+        eventSpan.textContent = event;
+        
+        entry.appendChild(timestampSpan);
+        entry.appendChild(levelSpan);
+        entry.appendChild(eventSpan);
+        
+        if (source) {
+            const sourceSpan = document.createElement('span');
+            sourceSpan.className = 'log-source';
+            sourceSpan.textContent = `[${source}]`;
+            entry.appendChild(sourceSpan);
+        }
+        
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'log-message';
+        messageSpan.textContent = message;
+        entry.appendChild(messageSpan);
+        
+        if (hasData) {
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'log-toggle';
+            toggleSpan.setAttribute('data-action', 'toggle');
+            toggleSpan.setAttribute('title', 'Show full JSON payload');
+            toggleSpan.textContent = '▶';
+            entry.appendChild(toggleSpan);
+            
+            // Create details container with JSON tree
+            const details = document.createElement('div');
+            details.className = 'log-details';
+            
+            // Use JSON tree for data display
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'log-data cmd-output--json-tree';
+            const tree = createJsonTreeNode(data, '', 0, false);
+            treeContainer.appendChild(tree);
+            details.appendChild(treeContainer);
+            
+            entry.appendChild(details);
+        }
+
+        return entry;
+    }
+
+    function applyLogFilters() {
+        const allEntries = document.querySelectorAll('.log-entry[data-level]');
+        allEntries.forEach(function(entry) {
+            const level = entry.getAttribute('data-level');
+            if (level && state.filterLevels[level] === false) {
+                entry.classList.add('filtered');
+            } else {
+                entry.classList.remove('filtered');
+            }
+        });
+    }
+
+    function addLogEntry(data) {
+        if (dom.empty) {
+            dom.empty.style.display = 'none';
+        }
+
+        const shouldScroll = state.autoScroll && isScrolledToBottom();
+        const entry = createLogEntry(data);
+        
+        const level = data.level || 'info';
+        if (state.filterLevels[level] === false) {
+            entry.classList.add('filtered');
+        }
+        
+        if (state.currentPrompt) {
+            dom.output.insertBefore(entry, state.currentPrompt);
+        } else {
+            dom.output.appendChild(entry);
+        }
+
+        // Always copy to split output if it exists
+        if (dom.splitOutput) {
+            const splitEntry = entry.cloneNode(true);
+            reattachEventListeners(splitEntry);
+            // Insert before split prompt if exists, otherwise append
+            if (state.splitPrompt) {
+                dom.splitOutput.insertBefore(splitEntry, state.splitPrompt);
+            } else {
+                dom.splitOutput.appendChild(splitEntry);
+            }
+            if (state.autoScroll) {
+                dom.splitOutput.scrollTop = dom.splitOutput.scrollHeight;
+            }
+        }
+
+        state.eventCount++;
+
+        while (dom.output.children.length > CONFIG.maxEntries + 1) {
+            const first = dom.output.querySelector('.log-entry');
+            if (first) first.remove();
+        }
+        
+        if (dom.splitOutput) {
+            while (dom.splitOutput.children.length > CONFIG.maxEntries) {
+                const first = dom.splitOutput.querySelector('.log-entry');
+                if (first) first.remove();
+            }
+        }
+
+        if (shouldScroll) {
+            scrollToBottom();
+        }
+    }
+
+    function addSystemMessage(message, level = 'info') {
+        addLogEntry({
+            event: 'system',
+            level: level,
+            message: message,
+            timestamp: Date.now() / 1000
+        });
+    }
+
+    // Command Prompt
+    function createPrompt() {
+        if (state.currentPrompt) {
+            state.currentPrompt.remove();
+        }
+        if (state.splitPrompt) {
+            state.splitPrompt.remove();
+        }
+
+        if (dom.empty) {
+            dom.empty.style.display = 'none';
+        }
+
+        const line = document.createElement('div');
+        line.className = 'cmd-line';
+        line.innerHTML = `
+            <span class="cmd-prompt">$</span>
+            <input type="text" class="cmd-input" placeholder="Type 'help' + Enter for available commands" autofocus>
+        `;
+
+        const input = line.querySelector('.cmd-input');
+
+        function handleKeydown(e, inputEl) {
+            if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                if (state.currentExecutionId) {
+                    executeCommand('stop ' + state.currentExecutionId);
+                    appendOutput('info', '^C (sending stop for: ' + state.currentExecutionId + ')');
+                } else {
+                    appendOutput('warning', '^C (no active execution to stop)');
+                }
+                return;
+            }
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const cmd = inputEl.value.trim();
+                if (cmd) {
+                    executeCommand(cmd);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (state.cmdHistory.length > 0) {
+                    if (state.cmdHistoryIndex < state.cmdHistory.length - 1) {
+                        state.cmdHistoryIndex++;
+                    }
+                    const histCmd = state.cmdHistory[state.cmdHistory.length - 1 - state.cmdHistoryIndex];
+                    inputEl.value = histCmd;
+                    syncPromptInputs(histCmd);
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (state.cmdHistoryIndex > 0) {
+                    state.cmdHistoryIndex--;
+                    const histCmd = state.cmdHistory[state.cmdHistory.length - 1 - state.cmdHistoryIndex];
+                    inputEl.value = histCmd;
+                    syncPromptInputs(histCmd);
+                } else {
+                    state.cmdHistoryIndex = -1;
+                    inputEl.value = '';
+                    syncPromptInputs('');
+                }
+            }
+        }
+
+        input.addEventListener('keydown', (e) => handleKeydown(e, input));
+        
+        input.addEventListener('input', () => {
+            if (state.splitPrompt) {
+                const splitInput = state.splitPrompt.querySelector('.cmd-input');
+                if (splitInput && splitInput !== document.activeElement) {
+                    splitInput.value = input.value;
+                }
+            }
+        });
+
+        dom.output.appendChild(line);
+        state.currentPrompt = line;
+        state.cmdHistoryIndex = -1;
+
+        // Create split prompt if split output exists
+        if (dom.splitOutput) {
+            createSplitPrompt();
+        }
+
+        input.focus();
+        if (state.autoScroll) {
+            scrollToBottom();
+            if (dom.splitOutput) {
+                dom.splitOutput.scrollTop = dom.splitOutput.scrollHeight;
+            }
+        }
+    }
+    
+    function syncPromptInputs(value) {
+        if (state.currentPrompt) {
+            const mainInput = state.currentPrompt.querySelector('.cmd-input');
+            if (mainInput) mainInput.value = value;
+        }
+        if (state.splitPrompt) {
+            const splitInput = state.splitPrompt.querySelector('.cmd-input');
+            if (splitInput) splitInput.value = value;
+        }
+    }
+    
+    function createSplitPrompt() {
+        if (!dom.splitOutput) return;
+        
+        if (state.splitPrompt) {
+            state.splitPrompt.remove();
+        }
+        
+        const splitLine = document.createElement('div');
+        splitLine.className = 'cmd-line';
+        splitLine.innerHTML = `
+            <span class="cmd-prompt">$</span>
+            <input type="text" class="cmd-input" placeholder="Type 'help' + Enter for available commands">
+        `;
+        
+        const splitInput = splitLine.querySelector('.cmd-input');
+        
+        function handleKeydown(e, inputEl) {
+            if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                if (state.currentExecutionId) {
+                    executeCommand('stop ' + state.currentExecutionId);
+                    appendOutput('info', '^C (sending stop for: ' + state.currentExecutionId + ')');
+                } else {
+                    appendOutput('warning', '^C (no active execution to stop)');
+                }
+                return;
+            }
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const cmd = inputEl.value.trim();
+                if (cmd) {
+                    executeCommand(cmd);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (state.cmdHistory.length > 0) {
+                    if (state.cmdHistoryIndex < state.cmdHistory.length - 1) {
+                        state.cmdHistoryIndex++;
+                    }
+                    const histCmd = state.cmdHistory[state.cmdHistory.length - 1 - state.cmdHistoryIndex];
+                    inputEl.value = histCmd;
+                    syncPromptInputs(histCmd);
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (state.cmdHistoryIndex > 0) {
+                    state.cmdHistoryIndex--;
+                    const histCmd = state.cmdHistory[state.cmdHistory.length - 1 - state.cmdHistoryIndex];
+                    inputEl.value = histCmd;
+                    syncPromptInputs(histCmd);
+                } else {
+                    state.cmdHistoryIndex = -1;
+                    inputEl.value = '';
+                    syncPromptInputs('');
+                }
+            }
+        }
+        
+        splitInput.addEventListener('keydown', (e) => handleKeydown(e, splitInput));
+        
+        splitInput.addEventListener('input', () => {
+            if (state.currentPrompt) {
+                const mainInput = state.currentPrompt.querySelector('.cmd-input');
+                if (mainInput && mainInput !== document.activeElement) {
+                    mainInput.value = splitInput.value;
+                }
+            }
+        });
+        
+        if (state.currentPrompt) {
+            const mainInput = state.currentPrompt.querySelector('.cmd-input');
+            if (mainInput) {
+                splitInput.value = mainInput.value;
+            }
+        }
+        
+        dom.splitOutput.appendChild(splitLine);
+        state.splitPrompt = splitLine;
+        
+        if (state.autoScroll) {
+            dom.splitOutput.scrollTop = dom.splitOutput.scrollHeight;
+        }
+    }
+
+    /**
+     * Apply SQL syntax highlighting to a command string
+     */
+    /**
+     * Create SQL highlighted DOM fragment (avoids innerHTML parsing issues)
+     * Returns a DocumentFragment with properly styled spans
+     */
+    function createHighlightedSQL(cmdText) {
+        const fragment = document.createDocumentFragment();
+        
+        // SQL keywords to highlight
+        const keywords = new Set([
+            'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL',
+            'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE',
+            'CREATE', 'TABLE', 'DROP', 'ALTER', 'INDEX', 'VIEW',
+            'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'AS',
+            'ORDER', 'BY', 'ASC', 'DESC', 'GROUP', 'HAVING',
+            'LIMIT', 'OFFSET', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+            'LIKE', 'BETWEEN', 'EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+            'PRAGMA', 'EXPLAIN', 'UNION', 'ALL', 'PRIMARY', 'KEY', 'FOREIGN',
+            'REFERENCES', 'DEFAULT', 'CONSTRAINT', 'CHECK', 'UNIQUE'
+        ]);
+        
+        // Tokenize the SQL text
+        // Match: strings, numbers, words, operators, whitespace, other
+        const tokenRegex = /('[^']*')|(\d+\.?\d*)|(\w+)|([\*=!<>]+)|(\s+)|(.)/g;
+        let match;
+        
+        while ((match = tokenRegex.exec(cmdText)) !== null) {
+            const [full, str, num, word, op, space, other] = match;
+            
+            if (str) {
+                // String literal
+                const span = document.createElement('span');
+                span.className = 'sql-string';
+                span.textContent = str;
+                fragment.appendChild(span);
+            } else if (num) {
+                // Number
+                const span = document.createElement('span');
+                span.className = 'sql-number';
+                span.textContent = num;
+                fragment.appendChild(span);
+            } else if (word) {
+                // Word - check if keyword
+                if (keywords.has(word.toUpperCase())) {
+                    const span = document.createElement('span');
+                    span.className = 'sql-keyword';
+                    span.textContent = word;
+                    fragment.appendChild(span);
+                } else {
+                    // Regular word (could be table/column name)
+                    fragment.appendChild(document.createTextNode(word));
+                }
+            } else if (op) {
+                // Operator
+                const span = document.createElement('span');
+                span.className = 'sql-operator';
+                span.textContent = op;
+                fragment.appendChild(span);
+            } else if (space) {
+                // Whitespace
+                fragment.appendChild(document.createTextNode(space));
+            } else if (other) {
+                // Other character
+                fragment.appendChild(document.createTextNode(other));
+            }
+        }
+        
+        return fragment;
+    }
+
+    function showExecutedCommand(cmd) {
+        const line = document.createElement('div');
+        line.className = 'cmd-executed';
+        
+        // Create prompt element
+        const promptSpan = document.createElement('span');
+        promptSpan.className = 'cmd-prompt';
+        promptSpan.textContent = '$';
+        line.appendChild(promptSpan);
+        
+        // Create text element
+        const textSpan = document.createElement('span');
+        textSpan.className = 'cmd-text';
+        
+        // Check if command starts with sql, query, or exec (SQL commands)
+        const cmdLower = cmd.trim().toLowerCase();
+        const isSqlCommand = cmdLower.startsWith('sql ') || cmdLower.startsWith('query ') || cmdLower.startsWith('exec ');
+        
+        if (isSqlCommand) {
+            line.classList.add('cmd-sql');
+            
+            // Extract the command name and SQL part
+            const spaceIndex = cmd.indexOf(' ');
+            const cmdName = cmd.substring(0, spaceIndex);
+            const sqlPart = cmd.substring(spaceIndex + 1);
+            
+            // Command name span
+            const cmdNameSpan = document.createElement('span');
+            cmdNameSpan.className = 'sql-cmd';
+            cmdNameSpan.textContent = cmdName;
+            textSpan.appendChild(cmdNameSpan);
+            
+            // Space
+            textSpan.appendChild(document.createTextNode(' '));
+            
+            // SQL highlighted content - use DOM API (not innerHTML)
+            const sqlFragment = createHighlightedSQL(sqlPart);
+            textSpan.appendChild(sqlFragment);
+        } else {
+            textSpan.textContent = cmd;
+        }
+        
+        line.appendChild(textSpan);
+        
+        if (state.currentPrompt) {
+            dom.output.insertBefore(line, state.currentPrompt);
+        } else {
+            dom.output.appendChild(line);
+        }
+        
+        // Always copy to split output if it exists
+        if (dom.splitOutput) {
+            const splitLine = line.cloneNode(true);
+            if (state.splitPrompt) {
+                dom.splitOutput.insertBefore(splitLine, state.splitPrompt);
+            } else {
+                dom.splitOutput.appendChild(splitLine);
+            }
+        }
+    }
+
+    function showCommandOutput(text, type = 'info') {
+        const levelMap = {
+            'info': 'info',
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning'
+        };
+        
+        addLogEntry({
+            event: 'console',
+            level: levelMap[type] || 'info',
+            message: text,
+            timestamp: Date.now() / 1000
+        });
+    }
+
+    function appendOutput(type, message) {
+        showCommandOutput(message, type);
+    }
+
+    function loadCreatedCodeIntoEditor(data) {
+        if (window.__codeEditor && data.content) {
+            window.__codeEditor.value = data.content;
+            
+            if (window.__splitCodeEditor) {
+                window.__splitCodeEditor.value = data.content;
+            }
+            
+            updateCodeTabLabel(data.file_path);
+            
+            window.dispatchEvent(new CustomEvent('code-editor-loaded', {
+                detail: { content: data.content, filePath: data.file_path }
+            }));
+            
+            if (!document.body.classList.contains('layout-split')) {
+                const codeTabBtn = document.querySelector('.panel-tabs button[data-tab="code"]');
+                if (codeTabBtn) {
+                    codeTabBtn.click();
+                }
+            }
+            
+            window.dispatchEvent(new CustomEvent('code-loaded-from-console', {
+                detail: {
+                    action: data.action,
+                    id: data.node_id || data.workflow_id,
+                    module_path: data.module_path,
+                    file_path: data.file_path,
+                    registration_status: data.registration_status
+                }
+            }));
+        }
+    }
+    
+    function updateCodeTabLabel(filePath) {
+        if (!filePath) return;
+        
+        const filename = filePath.split(/[/\\]/).pop() || 'Code';
+        
+        const pythonIcon = `<svg class="tab-icon-svg" viewBox="0 0 24 24" width="14" height="14">
+            <path fill="#3776AB" d="M12 0C5.373 0 5.455.256 5.455 2.857v2.143h6.545v.857H3.818C1.364 5.857 0 7.714 0 11.143c0 3.428 1.714 5.143 3.818 5.143h2.455v-2.857c0-2.143 1.818-4 4.091-4h6.545c2.273 0 4.091-1.714 4.091-4V2.857C21 .256 18.727 0 12 0zm-3.273 1.714a1.286 1.286 0 110 2.572 1.286 1.286 0 010-2.572z"/>
+            <path fill="#FFD43B" d="M12 24c6.627 0 6.545-.256 6.545-2.857v-2.143h-6.545v-.857h8.182c2.454 0 3.818-1.857 3.818-5.286 0-3.428-1.714-5.143-3.818-5.143h-2.455v2.857c0 2.143-1.818 4-4.091 4H7.091c-2.273 0-4.091 1.714-4.091 4v2.572C3 23.744 5.273 24 12 24zm3.273-1.714a1.286 1.286 0 110-2.572 1.286 1.286 0 010 2.572z"/>
+        </svg>`;
+        
+        const codeTabBtn = document.querySelector('.panel-tabs button[data-tab="code"]');
+        if (codeTabBtn) {
+            codeTabBtn.innerHTML = `${pythonIcon}<span>${filename}</span>`;
+            codeTabBtn.title = filePath;
+        }
+        
+        const splitPanelTitle = document.querySelector('#split-panel-code .panel-title');
+        if (splitPanelTitle) {
+            splitPanelTitle.innerHTML = `${pythonIcon}<span>${filename}</span>`;
+            splitPanelTitle.title = filePath;
+        }
+    }
+    
+    function resetCodeTabLabel() {
+        const codeTabBtn = document.querySelector('.panel-tabs button[data-tab="code"]');
+        if (codeTabBtn) {
+            codeTabBtn.innerHTML = '<span class="tab-icon">⟨⟩</span><span>Code</span>';
+            codeTabBtn.title = '';
+        }
+        
+        const splitPanelTitle = document.querySelector('#split-panel-code .panel-title');
+        if (splitPanelTitle) {
+            splitPanelTitle.innerHTML = '<span>⟨⟩</span><span>Code</span>';
+            splitPanelTitle.title = '';
+        }
+    }
+
+    /* ==========================================================================
+       Output Format Dispatcher - Routes rendering based on format type
+       ========================================================================== */
+
+    /**
+     * Extract payload for format-specific rendering.
+     * Node execution results have data.result.response.output; use that as the render payload.
+     * Otherwise use data as-is for backward compatibility.
+     */
+    function getRenderPayload(format, data) {
+        if (!data) return null;
+        const result = data.result;
+        if (result && result.response && result.response.hasOwnProperty('output')) {
+            return result.response.output;
+        }
+        return data;
+    }
+
+    /**
+     * Validate that payload is compatible with requested format.
+     * Returns { compatible: boolean, payload: any } - payload may be normalized for the handler.
+     */
+    function validateFormatPayload(format, payload) {
+        if (payload === undefined || payload === null) {
+            return { compatible: format === 'json', payload };
+        }
+        switch (format) {
+            case 'table':
+                if (payload && typeof payload === 'object' && Array.isArray(payload.columns) && Array.isArray(payload.rows)) {
+                    return { compatible: true, payload };
+                }
+                return { compatible: false, payload };
+            case 'text':
+            case 'html':
+            case 'code':
+            case 'tree':
+            case 'json':
+            case 'chart':
+            case 'download':
+            case 'formData':
+            default:
+                return { compatible: true, payload };
+        }
+    }
+
+    /**
+     * Dispatch rendering to format-specific handlers
+     * @param {string} message - Display message
+     * @param {string} type - Output type (info, success, error, warning)
+     * @param {string} format - Output format (json, text, html, table, code, progress, tree)
+     * @param {any} data - Optional data payload
+     */
+    function renderConsoleOutput(message, type, format, data) {
+        // Special formats that render standalone (no wrapper)
+        const standaloneFormats = ['progress', 'text', 'help'];
+        
+        if (standaloneFormats.includes(format)) {
+            // These formats render directly without JSON payload section
+            const formatHandlers = {
+                'text': renderTextOutput,
+                'progress': renderProgressOutput,
+                'help': renderHelpOutput
+            };
+            formatHandlers[format](message, type, data);
+            return;
+        }
+        
+        // Create wrapper with 2 toggle sections: JSON Payload + Rendered Format
+        const wrapper = document.createElement('div');
+        wrapper.className = `cmd-output-wrapper cmd-output--${type}`;
+        
+        // Header with message
+        const header = document.createElement('div');
+        header.className = 'output-header';
+        header.innerHTML = `
+            <span class="output-type-icon">${getTypeIcon(type)}</span>
+            <span class="output-message">${escapeHtml(message || '')}</span>
+        `;
+        wrapper.appendChild(header);
+        
+        // Section 1: JSON Payload (collapsible, collapsed by default) - navigable tree style
+        if (data) {
+            const jsonSection = document.createElement('div');
+            jsonSection.className = 'output-section output-section--json';
+            
+            const jsonHeader = document.createElement('div');
+            jsonHeader.className = 'section-header';
+            jsonHeader.innerHTML = `
+                <span class="section-toggle">▶</span>
+                <span class="section-title">📦 JSON Payload</span>
+            `;
+            
+            const jsonContent = document.createElement('div');
+            jsonContent.className = 'section-content';
+            jsonContent.style.display = 'none';
+            
+            // Render navigable JSON tree (like browser dev console)
+            const jsonTreeContainer = document.createElement('div');
+            jsonTreeContainer.className = 'json-payload json-tree-container';
+            const jsonTree = createJsonTreeNode(data, '', 0, false);
+            jsonTreeContainer.appendChild(jsonTree);
+            jsonContent.appendChild(jsonTreeContainer);
+            
+            // Toggle handler
+            jsonHeader.addEventListener('click', () => {
+                const toggle = jsonHeader.querySelector('.section-toggle');
+                const expanded = toggle.textContent === '▼';
+                toggle.textContent = expanded ? '▶' : '▼';
+                jsonContent.style.display = expanded ? 'none' : 'block';
+            });
+            
+            jsonSection.appendChild(jsonHeader);
+            jsonSection.appendChild(jsonContent);
+            wrapper.appendChild(jsonSection);
+        }
+        
+        // Section 2: Rendered Format (expanded by default)
+        const renderSection = document.createElement('div');
+        renderSection.className = `output-section output-section--render output-section--${format}`;
+        
+        const renderHeader = document.createElement('div');
+        renderHeader.className = 'section-header section-header--active';
+        renderHeader.innerHTML = `
+            <span class="section-toggle">▼</span>
+            <span class="section-title">${getFormatIcon(format)} ${getFormatLabel(format)}</span>
+        `;
+        
+        const renderContent = document.createElement('div');
+        renderContent.className = 'section-content';
+        renderContent.style.display = 'block';  // Explicitly visible by default
+        
+        // Toggle handler
+        renderHeader.addEventListener('click', () => {
+            const toggle = renderHeader.querySelector('.section-toggle');
+            const expanded = toggle.textContent === '▼';
+            toggle.textContent = expanded ? '▶' : '▼';
+            renderContent.style.display = expanded ? 'none' : 'block';
+            renderHeader.classList.toggle('section-header--active', !expanded);
+        });
+        
+        renderSection.appendChild(renderHeader);
+        renderSection.appendChild(renderContent);
+        wrapper.appendChild(renderSection);
+        
+        // Extract render payload (node result.response.output) and validate format compatibility
+        let renderPayload = getRenderPayload(format, data);
+        let effectiveFormat = format;
+        const validation = validateFormatPayload(format, renderPayload);
+        if (!validation.compatible) {
+            effectiveFormat = 'json';
+            renderPayload = data;
+            renderSection.className = renderSection.className.replace(
+                `output-section--${format}`,
+                'output-section--json output-section--format-fallback'
+            );
+            renderHeader.querySelector('.section-title').innerHTML =
+                `${getFormatIcon('json')} JSON View <span class="format-fallback-hint">(requested ${format} incompatible with payload)</span>`;
+        }
+        
+        // Render the format content BEFORE inserting into DOM (avoids rendering issues)
+        const formatHandlers = {
+            'json': renderJsonTreeInto,
+            'html': renderHtmlInto,
+            'table': renderTableInto,
+            'code': renderCodeInto,
+            'tree': renderFileTreeInto,
+            'formData': renderFormDataInto,
+            'chart': renderChartInto,
+            'download': renderDownloadInto
+        };
+        
+        // For html/code/tree formats, use renderPayload as content when it's the node output
+        const formatContent = (effectiveFormat === 'html' || effectiveFormat === 'code' || effectiveFormat === 'tree') &&
+            renderPayload !== undefined && renderPayload !== null
+            ? (typeof renderPayload === 'string' ? renderPayload : (renderPayload && typeof renderPayload.code === 'string' ? renderPayload.code : (renderPayload && typeof renderPayload.response === 'string' ? renderPayload.response : JSON.stringify(renderPayload, null, 2))))
+            : message;
+        const handler = formatHandlers[effectiveFormat] || formatHandlers['json'];
+        handler(renderContent, formatContent, type, renderPayload);
+        
+        // NOW insert the fully-rendered wrapper into the DOM
+        insertOutput(wrapper);
+    }
+    
+    function getTypeIcon(type) {
+        const icons = {
+            'success': '✅',
+            'error': '❌',
+            'warning': '⚠️',
+            'info': 'ℹ️',
+            'debug': '🔍'
+        };
+        return icons[type] || 'ℹ️';
+    }
+    
+    function getFormatIcon(format) {
+        const icons = {
+            'json': '{ }',
+            'table': '📊',
+            'chart': '📈',
+            'download': '⬇️',
+            'tree': '🌳',
+            'html': '🌐',
+            'code': '⟨⟩',
+            'formData': '📝'
+        };
+        return icons[format] || '📄';
+    }
+    
+    function getFormatLabel(format) {
+        const labels = {
+            'json': 'JSON View',
+            'table': 'Table View',
+            'chart': 'Chart View',
+            'download': 'Download',
+            'tree': 'Tree View',
+            'html': 'HTML View',
+            'code': 'Code View',
+            'formData': 'Form Input'
+        };
+        return labels[format] || 'Output';
+    }
+    
+    // =========================================================================
+    // Format renderers that render INTO a container (for wrapper structure)
+    // =========================================================================
+    
+    function renderJsonTreeInto(container, message, type, data) {
+        if (data === undefined || data === null) {
+            if (data === null) {
+                container.innerHTML = '<span class="json-null">null</span>';
+            }
+            return;
+        }
+        // Use createJsonTreeNode - start collapsed, user expands what they need
+        const treeEl = createJsonTreeNode(data, '', 0, false);
+        container.appendChild(treeEl);
+    }
+    
+    function renderHtmlInto(container, message, type, data) {
+        container.innerHTML = sanitizeHtml(message || data || '');
+    }
+    
+    function validateTablePayload(data) {
+        if (!data || typeof data !== 'object') {
+            return { valid: false, error: 'Table payload: data is missing or not an object' };
+        }
+        if (!Array.isArray(data.columns)) {
+            return { valid: false, error: 'Table payload: data.columns must be an array of column names' };
+        }
+        if (!Array.isArray(data.rows)) {
+            return { valid: false, error: 'Table payload: data.rows must be an array of row objects' };
+        }
+        if (data.columns.length === 0 && data.rows.length > 0) {
+            return { valid: false, error: 'Table payload: data.columns is empty but data.rows has items' };
+        }
+        return { valid: true };
+    }
+
+    function renderTableInto(container, message, type, data) {
+        var validation = validateTablePayload(data);
+        if (!validation.valid) {
+            console.error('[Table render] ' + validation.error, { data: data });
+            showCommandOutput(validation.error, 'error');
+            container.innerHTML = '<span class="no-data table-validation-error">' + escapeHtml(validation.error) + '</span>';
+            return;
+        }
+        if (data.rows.length === 0) {
+            container.innerHTML = '<span class="no-data">No data</span>';
+            return;
+        }
+
+        // Table container for horizontal scroll
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        table.setAttribute('data-columns', JSON.stringify(data.columns));
+        
+        // Header row
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        data.columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.setAttribute('draggable', 'true');
+            th.setAttribute('data-col-index', index);
+            th.setAttribute('data-col-name', col);
+            
+            const colLabel = document.createElement('span');
+            colLabel.className = 'col-label';
+            colLabel.textContent = col;
+            th.appendChild(colLabel);
+            
+            // Add resize handle
+            const resizer = document.createElement('div');
+            resizer.className = 'col-resizer';
+            resizer.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                initColumnResize(e, th, table);
+            });
+            th.appendChild(resizer);
+            
+            // Drag & drop handlers
+            th.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', index);
+                th.classList.add('dragging');
+            });
+            th.addEventListener('dragend', () => {
+                th.classList.remove('dragging');
+            });
+            th.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                th.classList.add('drag-over');
+            });
+            th.addEventListener('dragleave', () => {
+                th.classList.remove('drag-over');
+            });
+            th.addEventListener('drop', (e) => {
+                e.preventDefault();
+                th.classList.remove('drag-over');
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const toIndex = index;
+                if (fromIndex !== toIndex) {
+                    reorderTableColumns(table, data, fromIndex, toIndex);
+                }
+            });
+            
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Body rows
+        const tbody = document.createElement('tbody');
+        const totalRows = data.rows.length;
+        
+        for (let i = 0; i < totalRows; i++) {
+            const row = data.rows[i];
+            const tr = document.createElement('tr');
+            
+            data.columns.forEach((col, colIndex) => {
+                const td = document.createElement('td');
+                const value = row[col] !== undefined ? row[col] : row[colIndex];
+                
+                if (value === null) {
+                    td.innerHTML = '<span class="null-value">NULL</span>';
+                } else if (typeof value === 'boolean') {
+                    td.innerHTML = value ? '<span class="bool-true">true</span>' : '<span class="bool-false">false</span>';
+                } else if (typeof value === 'number') {
+                    td.className = 'cell-number';
+                    td.textContent = value;
+                } else {
+                    td.textContent = String(value);
+                }
+                
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        
+        tableContainer.appendChild(table);
+        container.appendChild(tableContainer);
+        
+        // Footer with info
+        const footer = document.createElement('div');
+        footer.className = 'table-footer';
+        
+        const info = document.createElement('span');
+        info.className = 'table-info';
+        info.textContent = `Showing ${totalRows} row${totalRows !== 1 ? 's' : ''}`;
+        if (data.execution_time_ms) {
+            info.textContent += ` (${data.execution_time_ms}ms)`;
+        }
+        footer.appendChild(info);
+        
+        // Download CSV button
+        const csvBtn = document.createElement('button');
+        csvBtn.className = 'table-copy-btn table-export-btn';
+        csvBtn.innerHTML = '📋 CSV';
+        csvBtn.title = 'Download as CSV';
+        csvBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'csv', csvBtn);
+        });
+        footer.appendChild(csvBtn);
+        
+        // Download JSON button
+        const jsonBtn = document.createElement('button');
+        jsonBtn.className = 'table-copy-btn table-export-btn';
+        jsonBtn.innerHTML = '{ } JSON';
+        jsonBtn.title = 'Download as JSON';
+        jsonBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'json', jsonBtn);
+        });
+        footer.appendChild(jsonBtn);
+        
+        // Download Excel button
+        const excelBtn = document.createElement('button');
+        excelBtn.className = 'table-copy-btn table-export-btn table-excel-btn';
+        excelBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 17l2-4-2-4h1.5l1.25 2.5L12 9h1.5l-2 4 2 4H12l-1.25-2.5L9.5 17H8z"/></svg> Excel';
+        excelBtn.title = 'Download as Excel';
+        excelBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'excel', excelBtn);
+        });
+        footer.appendChild(excelBtn);
+        
+        container.appendChild(footer);
+    }
+    
+    function reorderTableColumns(table, data, fromIndex, toIndex) {
+        // Reorder columns array
+        const columns = [...data.columns];
+        const [moved] = columns.splice(fromIndex, 1);
+        columns.splice(toIndex, 0, moved);
+        data.columns = columns;
+        
+        // Reorder header cells
+        const headerRow = table.querySelector('thead tr');
+        const headerCells = Array.from(headerRow.children);
+        const [movedHeader] = headerCells.splice(fromIndex, 1);
+        headerCells.splice(toIndex, 0, movedHeader);
+        headerRow.innerHTML = '';
+        headerCells.forEach((cell, i) => {
+            cell.setAttribute('data-col-index', i);
+            headerRow.appendChild(cell);
+        });
+        
+        // Reorder body cells
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const cells = Array.from(row.children);
+            const [movedCell] = cells.splice(fromIndex, 1);
+            cells.splice(toIndex, 0, movedCell);
+            row.innerHTML = '';
+            cells.forEach(cell => row.appendChild(cell));
+        });
+    }
+    
+    function renderCodeInto(container, message, type, data) {
+        const lang = (data?.language || 'plaintext').toLowerCase();
+        const code = message || '';
+        const pre = document.createElement('pre');
+        pre.className = 'code-block';
+        pre.setAttribute('data-lang', lang);
+        const codeEl = document.createElement('code');
+        if (lang !== 'plaintext') codeEl.className = 'language-' + lang;
+        codeEl.textContent = code;
+        pre.appendChild(codeEl);
+        container.appendChild(pre);
+        if (typeof Prism !== 'undefined' && lang !== 'plaintext' && Prism.languages[lang]) {
+            Prism.highlightElement(codeEl);
+        }
+    }
+    
+    function renderFileTreeInto(container, message, type, data) {
+        container.innerHTML = `<pre class="file-tree">${escapeHtml(message || '')}</pre>`;
+    }
+    
+    function renderFormDataInto(container, message, type, data) {
+        // Use existing form rendering logic
+        const formContent = buildFormContent(data);
+        container.appendChild(formContent);
+    }
+    
+    function renderChartInto(container, message, type, data) {
+        if (!data) return;
+        
+        // Chart controls
+        const controls = document.createElement('div');
+        controls.className = 'chart-controls';
+        controls.innerHTML = `
+            <select class="chart-type-select">
+                <option value="bar" ${data.type === 'bar' ? 'selected' : ''}>📊 Bar</option>
+                <option value="line" ${data.type === 'line' ? 'selected' : ''}>📈 Line</option>
+                <option value="pie" ${data.type === 'pie' ? 'selected' : ''}>🥧 Pie</option>
+                <option value="doughnut" ${data.type === 'doughnut' ? 'selected' : ''}>🍩 Doughnut</option>
+            </select>
+        `;
+        container.appendChild(controls);
+        
+        // Chart canvas
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'chart-canvas-container';
+        const chartSvg = createSimpleChart(data);
+        chartContainer.appendChild(chartSvg);
+        container.appendChild(chartContainer);
+        
+        // Legend
+        if (data.labels && data.datasets) {
+            const legend = createChartLegend(data);
+            container.appendChild(legend);
+        }
+        
+        // Type change handler
+        const typeSelect = controls.querySelector('.chart-type-select');
+        typeSelect.addEventListener('change', () => {
+            data.type = typeSelect.value;
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(createSimpleChart(data));
+        });
+    }
+    
+    function renderDownloadInto(container, message, type, data) {
+        if (!data || !data.url) return;
+        
+        const filename = data.filename || data.url.split('/').pop() || 'download';
+        const ext = filename.split('.').pop().toLowerCase();
+        const icon = getFileIcon(ext);
+        const sizeStr = data.size ? formatFileSize(data.size) : '';
+        
+        container.innerHTML = `
+            <a href="${escapeHtml(data.url)}" class="download-link" download="${escapeHtml(filename)}" target="_blank">
+                <span class="download-icon">${icon}</span>
+                <div class="download-info">
+                    <span class="download-filename">${escapeHtml(filename)}</span>
+                    ${sizeStr ? `<span class="download-size">${sizeStr}</span>` : ''}
+                    ${message ? `<span class="download-desc">${escapeHtml(message)}</span>` : ''}
+                </div>
+                <span class="download-action">⬇️ Download</span>
+            </a>
+        `;
+    }
+    
+    /**
+     * Build form content for formData format
+     */
+    function buildFormContent(data) {
+        const form = document.createElement('form');
+        form.className = 'interactive-form';
+        form.setAttribute('data-request-id', data.request_id || '');
+        
+        // State section
+        if (data.state && data.state.fields && data.state.fields.length > 0) {
+            const stateSection = createFormSection('state', data.state);
+            form.appendChild(stateSection);
+        }
+        
+        // Params section
+        if (data.params && data.params.fields && data.params.fields.length > 0) {
+            const paramsSection = createFormSection('params', data.params);
+            form.appendChild(paramsSection);
+        }
+        
+        // Button row
+        const buttonRow = document.createElement('div');
+        buttonRow.className = 'form-button-row';
+        
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.className = 'form-send-btn';
+        sendBtn.innerHTML = '<span class="send-icon">➤</span> Send';
+        
+        sendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFormSubmit(data.request_id, form, false);
+        });
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'form-cancel-btn';
+        cancelBtn.innerHTML = '<span class="cancel-icon">✕</span> Cancel';
+        
+        cancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFormSubmit(data.request_id, form, true);
+        });
+        
+        buttonRow.appendChild(cancelBtn);
+        buttonRow.appendChild(sendBtn);
+        form.appendChild(buttonRow);
+        
+        // Prevent native form submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+        
+        return form;
+    }
+
+    /**
+     * Text output renderer - handles newlines and preserves formatting
+     */
+    function renderTextOutput(message, type, data) {
+        if (!message && !data) return;
+        
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--text cmd-output--${type}`;
+        
+        // Prepare full text for copy
+        let fullText = message || '';
+        
+        // Create header with copy button
+        const header = document.createElement('div');
+        header.className = 'output-header';
+        header.appendChild(createCopyButton(fullText));
+        output.appendChild(header);
+        
+        // Create text content with preserved whitespace
+        const textContent = document.createElement('pre');
+        textContent.className = 'cmd-text-content';
+        textContent.textContent = message || '';
+        output.appendChild(textContent);
+        
+        // If there's additional data, render it below
+        if (data) {
+            let dataText;
+            try {
+                dataText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            } catch (e) {
+                dataText = String(data);
+            }
+            fullText += '\n\n' + dataText;
+            
+            const dataContent = document.createElement('pre');
+            dataContent.className = 'cmd-text-data';
+            dataContent.textContent = dataText;
+            output.appendChild(dataContent);
+            
+            // Update copy button with full text
+            header.innerHTML = '';
+            header.appendChild(createCopyButton(fullText));
+        }
+        
+        insertOutput(output);
+    }
+    
+    /**
+     * Help output renderer - styled help with command highlighting
+     * Parses help text and applies visual styling for better readability
+     */
+    function renderHelpOutput(message, type, data) {
+        if (!message) return;
+        
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--help';
+        
+        // Split message into lines and process each
+        const lines = message.split('\n');
+        
+        lines.forEach((line, index) => {
+            const lineEl = document.createElement('div');
+            lineEl.className = 'help-line';
+            
+            // Detect line type and apply appropriate styling
+            if (line.match(/^Command:/i)) {
+                // Command name header
+                lineEl.className += ' help-command-header';
+                const parts = line.split(':');
+                lineEl.innerHTML = `<span class="help-label">${escapeHtml(parts[0])}:</span><span class="help-command-name">${escapeHtml(parts.slice(1).join(':').trim())}</span>`;
+            } else if (line.match(/^Description:/i)) {
+                // Description
+                lineEl.className += ' help-description';
+                const parts = line.split(':');
+                lineEl.innerHTML = `<span class="help-label">${escapeHtml(parts[0])}:</span><span class="help-description-text">${escapeHtml(parts.slice(1).join(':').trim())}</span>`;
+            } else if (line.match(/^Usage:/i)) {
+                // Usage line
+                lineEl.className += ' help-usage';
+                const parts = line.split(':');
+                lineEl.innerHTML = `<span class="help-label">${escapeHtml(parts[0])}:</span><code class="help-usage-code">${escapeHtml(parts.slice(1).join(':').trim())}</code>`;
+            } else if (line.match(/^Aliases:/i)) {
+                // Aliases
+                lineEl.className += ' help-aliases';
+                const parts = line.split(':');
+                lineEl.innerHTML = `<span class="help-label">${escapeHtml(parts[0])}:</span><span class="help-aliases-list">${escapeHtml(parts.slice(1).join(':').trim())}</span>`;
+            } else if (line.match(/^Subcommands:/i) || line.match(/^Commands:/i) || line.match(/^Options:/i)) {
+                // Section header
+                lineEl.className += ' help-section-header';
+                lineEl.innerHTML = `<span class="help-section-title">${escapeHtml(line)}</span>`;
+            } else if (line.match(/^\s{2,}\w+:/)) {
+                // Subcommand definition (indented name: description)
+                lineEl.className += ' help-subcommand';
+                const match = line.match(/^(\s*)(\w+):\s*(.*)$/);
+                if (match) {
+                    lineEl.innerHTML = `<span class="help-indent">${match[1]}</span><span class="help-subcmd-name">${escapeHtml(match[2])}</span>: <span class="help-subcmd-desc">${escapeHtml(match[3])}</span>`;
+                } else {
+                    lineEl.textContent = line;
+                }
+            } else if (line.match(/^\s{4,}Usage:/i)) {
+                // Nested usage (more indented)
+                lineEl.className += ' help-nested-usage';
+                const parts = line.split('Usage:');
+                lineEl.innerHTML = `<span class="help-indent">${escapeHtml(parts[0])}</span><span class="help-label">Usage:</span><code class="help-usage-code">${escapeHtml(parts[1] || '')}</code>`;
+            } else if (line.match(/^Available commands:/i)) {
+                // Available commands header (for general help)
+                lineEl.className += ' help-section-header help-available';
+                lineEl.innerHTML = `<span class="help-section-title">${escapeHtml(line)}</span>`;
+            } else if (line.match(/^\s{2}\w+\s*-/)) {
+                // Command list item (  command - description)
+                lineEl.className += ' help-cmd-list-item';
+                const match = line.match(/^(\s*)(\w+)\s*-\s*(.*)$/);
+                if (match) {
+                    lineEl.innerHTML = `<span class="help-indent">${match[1]}</span><span class="help-cmd-name">${escapeHtml(match[2])}</span> <span class="help-dash">-</span> <span class="help-cmd-desc">${escapeHtml(match[3])}</span>`;
+                } else {
+                    lineEl.textContent = line;
+                }
+            } else if (line.trim() === '') {
+                // Empty line - add spacing
+                lineEl.className += ' help-empty';
+                lineEl.innerHTML = '&nbsp;';
+            } else {
+                // Regular text
+                lineEl.className += ' help-text';
+                lineEl.textContent = line;
+            }
+            
+            output.appendChild(lineEl);
+        });
+        
+        insertOutput(output);
+    }
+
+    /* ==========================================================================
+       Form Data Renderer - Interactive forms for state/params editing
+       ========================================================================== */
+    
+    /**
+     * Render an interactive form for editing state and parameters.
+     * Used for node/workflow configuration during execution.
+     * 
+     * @param {string} message - Optional header message
+     * @param {string} type - Output type (info, success, etc.)
+     * @param {object} data - Form data with structure:
+     *   {
+     *     request_id: string,      // For response routing
+     *     title: string,           // Form title
+     *     node_id: string,         // Node identifier
+     *     state: { label, description, collapsed, fields: [...] },
+     *     params: { label, description, collapsed, fields: [...] }
+     *   }
+     */
+    function renderFormDataOutput(message, type, data) {
+        if (!data) return;
+        
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--form';
+        
+        // Form title header
+        const header = document.createElement('div');
+        header.className = 'form-header';
+        header.innerHTML = `
+            <span class="form-icon">⚙</span>
+            <span class="form-title">${escapeHtml(data.title || 'Configure Execution')}</span>
+            ${data.node_id ? `<span class="form-node-id">[${escapeHtml(data.node_id)}]</span>` : ''}
+        `;
+        output.appendChild(header);
+        
+        // Create form element
+        const form = document.createElement('form');
+        form.className = 'interactive-form';
+        form.setAttribute('data-request-id', data.request_id || '');
+        
+        // State section
+        if (data.state && data.state.fields) {
+            const stateSection = createFormSection('state', data.state);
+            form.appendChild(stateSection);
+        }
+        
+        // Params section
+        if (data.params && data.params.fields) {
+            const paramsSection = createFormSection('params', data.params);
+            form.appendChild(paramsSection);
+        }
+        
+        // Send button - use type="button" to prevent form submission
+        const buttonRow = document.createElement('div');
+        buttonRow.className = 'form-button-row';
+        
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.className = 'form-send-btn';
+        sendBtn.innerHTML = '<span class="send-icon">➤</span><span class="send-label">Send</span>';
+        
+        sendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFormSubmit(data.request_id, form, false);
+        });
+        
+        buttonRow.appendChild(sendBtn);
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'form-cancel-btn';
+        cancelBtn.innerHTML = '<span class="cancel-icon">✕</span><span class="cancel-label">Cancel</span>';
+        
+        cancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFormSubmit(data.request_id, form, true);
+        });
+        
+        buttonRow.appendChild(cancelBtn);
+        
+        form.appendChild(buttonRow);
+        
+        // Prevent any form submission (backup)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+        
+        output.appendChild(form);
+        insertOutput(output);
+        
+        // Focus first input
+        const firstInput = form.querySelector('input, select, textarea');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
+    }
+    
+    /**
+     * Create a collapsible form section (State or Params)
+     */
+    function createFormSection(sectionName, sectionData) {
+        const section = document.createElement('div');
+        section.className = `form-section form-section--${sectionName}`;
+        
+        const isCollapsed = sectionData.collapsed !== false && sectionData.fields.length === 0;
+        
+        // Section header with toggle
+        const sectionHeader = document.createElement('div');
+        sectionHeader.className = 'form-section-header';
+        sectionHeader.innerHTML = `
+            <span class="section-toggle ${isCollapsed ? '' : 'expanded'}">${isCollapsed ? '▶' : '▼'}</span>
+            <span class="section-label">${escapeHtml(sectionData.label || sectionName)}</span>
+            <span class="section-count">(${sectionData.fields.length} fields)</span>
+        `;
+        
+        // Section content
+        const sectionContent = document.createElement('div');
+        sectionContent.className = 'form-section-content';
+        sectionContent.style.display = isCollapsed ? 'none' : 'block';
+        
+        if (sectionData.description && sectionData.fields.length === 0) {
+            const desc = document.createElement('div');
+            desc.className = 'section-empty-message';
+            desc.textContent = sectionData.description;
+            sectionContent.appendChild(desc);
+        }
+        
+        // Render fields
+        sectionData.fields.forEach(field => {
+            const fieldEl = createFormField(field, sectionName);
+            sectionContent.appendChild(fieldEl);
+        });
+        
+        // Toggle click handler
+        sectionHeader.addEventListener('click', () => {
+            const toggle = sectionHeader.querySelector('.section-toggle');
+            const expanded = toggle.classList.toggle('expanded');
+            toggle.textContent = expanded ? '▼' : '▶';
+            sectionContent.style.display = expanded ? 'grid' : 'none';
+        });
+        
+        section.appendChild(sectionHeader);
+        section.appendChild(sectionContent);
+        
+        return section;
+    }
+    
+    /**
+     * Create a form field based on its type
+     */
+    function createFormField(field, sectionName) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `form-field form-field--${field.type}`;
+        
+        // Label
+        const label = document.createElement('label');
+        label.className = 'field-label';
+        label.setAttribute('for', `${sectionName}-${field.name}`);
+        label.innerHTML = `
+            ${escapeHtml(field.label)}
+            ${field.required ? '<span class="field-required">*</span>' : ''}
+        `;
+        wrapper.appendChild(label);
+        
+        // Input element based on type
+        let input;
+        const inputId = `${sectionName}-${field.name}`;
+        const inputName = `${sectionName}[${field.name}]`;
+        
+        switch (field.type) {
+            case 'json':
+                // JSON textarea: stringify object/array for display, parse on submit (decode: "json")
+                input = document.createElement('textarea');
+                input.rows = field.rows || 6;
+                input.placeholder = field.placeholder || '{"key": "value"}';
+                if (field.value !== undefined && field.value !== null) {
+                    input.value = (typeof field.value === 'object')
+                        ? JSON.stringify(field.value, null, 2)
+                        : (typeof field.value === 'string' ? field.value : String(field.value));
+                } else {
+                    input.value = '';
+                }
+                input.setAttribute('data-decode', 'json');
+                wrapper.classList.add('form-field--json');
+                input.addEventListener('input', () => {
+                    input.classList.remove('field-error');
+                    const f = input.closest('.interactive-form');
+                    if (f) {
+                        const errEl = f.querySelector('.form-validation-error');
+                        if (errEl) errEl.remove();
+                    }
+                });
+                break;
+                
+            case 'textarea':
+                input = document.createElement('textarea');
+                input.rows = field.rows || 4;
+                input.value = field.value || '';
+                break;
+                
+            case 'select':
+                input = document.createElement('select');
+                if (field.options) {
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.label || opt.value;
+                        if (opt.value === field.value) option.selected = true;
+                        input.appendChild(option);
+                    });
+                }
+                break;
+                
+            case 'checkbox':
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = field.value === true;
+                wrapper.classList.add('form-field--inline');
+                break;
+                
+            case 'range':
+                // Slider with value display
+                const sliderWrapper = document.createElement('div');
+                sliderWrapper.className = 'slider-wrapper';
+                
+                input = document.createElement('input');
+                input.type = 'range';
+                if (field.min !== undefined) input.min = field.min;
+                if (field.max !== undefined) input.max = field.max;
+                if (field.step !== undefined) input.step = field.step;
+                input.value = field.value !== undefined ? field.value : (field.min || 0);
+                
+                const valueDisplay = document.createElement('span');
+                valueDisplay.className = 'slider-value';
+                valueDisplay.textContent = input.value;
+                
+                input.addEventListener('input', () => {
+                    valueDisplay.textContent = input.value;
+                });
+                
+                sliderWrapper.appendChild(input);
+                sliderWrapper.appendChild(valueDisplay);
+                wrapper.appendChild(label);
+                wrapper.appendChild(sliderWrapper);
+                
+                // Add description if present
+                if (field.description) {
+                    const desc = document.createElement('div');
+                    desc.className = 'field-description';
+                    desc.textContent = field.description;
+                    wrapper.appendChild(desc);
+                }
+                
+                // Set data attributes for form collection
+                input.id = inputId;
+                input.name = inputName;
+                input.setAttribute('data-field-name', field.name);
+                input.setAttribute('data-section', sectionName);
+                if (field.required) input.required = true;
+                
+                return wrapper;
+                
+            case 'file':
+                input = document.createElement('input');
+                input.type = 'file';
+                if (field.accept) input.accept = field.accept;
+                if (field.multiple) input.multiple = true;
+                wrapper.classList.add('form-field--file');
+                if (field.max_size_mb != null || (field.extra && field.extra.max_size_mb != null)) {
+                    wrapper.setAttribute('data-max-size-mb', String(field.max_size_mb != null ? field.max_size_mb : field.extra.max_size_mb));
+                }
+                if (field.accept) wrapper.setAttribute('data-accept', field.accept);
+                var progressPlaceholder = document.createElement('div');
+                progressPlaceholder.className = 'upload-progress-placeholder';
+                progressPlaceholder.style.minHeight = '0';
+                input.id = inputId;
+                input.name = inputName;
+                input.className = 'field-input';
+                input.setAttribute('data-field-name', field.name);
+                input.setAttribute('data-section', sectionName);
+                if (field.required) input.required = true;
+                if (field.disabled) input.disabled = true;
+                if (field.readonly) input.readOnly = true;
+                wrapper.appendChild(input);
+                wrapper.appendChild(progressPlaceholder);
+                if (field.description) {
+                    var fileDesc = document.createElement('div');
+                    fileDesc.className = 'field-description';
+                    fileDesc.textContent = field.description;
+                    wrapper.appendChild(fileDesc);
+                }
+                return wrapper;
+                
+            default:
+                // text, number, email, password, url, date, time, color, etc.
+                input = document.createElement('input');
+                input.type = field.type || 'text';
+                input.value = field.value !== undefined ? field.value : '';
+                if (field.min !== undefined) input.min = field.min;
+                if (field.max !== undefined) input.max = field.max;
+                if (field.step !== undefined) input.step = field.step;
+                if (field.minLength !== undefined) input.minLength = field.minLength;
+                if (field.maxLength !== undefined) input.maxLength = field.maxLength;
+                if (field.pattern) input.pattern = field.pattern;
+                if (field.placeholder) input.placeholder = field.placeholder;
+                break;
+        }
+        
+        // Common input attributes
+        input.id = inputId;
+        input.name = inputName;
+        input.className = 'field-input';
+        input.setAttribute('data-field-name', field.name);
+        input.setAttribute('data-section', sectionName);
+        if (field.required) input.required = true;
+        if (field.disabled) input.disabled = true;
+        if (field.readonly) input.readOnly = true;
+        
+        wrapper.appendChild(input);
+        
+        // Description
+        if (field.description) {
+            const desc = document.createElement('div');
+            desc.className = 'field-description';
+            desc.textContent = field.description;
+            wrapper.appendChild(desc);
+        }
+        
+        return wrapper;
+    }
+    
+    /**
+     * Validate JSON-decodeable fields before submit. Returns { valid, errors }.
+     */
+    function validateFormJsonFields(form) {
+        const errors = [];
+        const inputs = form.querySelectorAll('[data-field-name][data-decode="json"]');
+        inputs.forEach(input => {
+            const fieldName = input.getAttribute('data-field-name');
+            const section = input.getAttribute('data-section');
+            const raw = (input.tagName === 'TEXTAREA' ? input.value : input.value).trim();
+            if (raw === '') return;  // empty is ok (optional) or will be handled by required
+            try {
+                JSON.parse(raw);
+            } catch (e) {
+                errors.push({
+                    field: fieldName,
+                    section,
+                    message: e.message || 'Invalid JSON'
+                });
+            }
+        });
+        return { valid: errors.length === 0, errors };
+    }
+
+    var UPLOAD_TEMP_URL = '/api/upload/temp';
+
+    /**
+     * Collect form data, uploading file fields via HTTP first to get upload_id(s).
+     * Returns Promise<{ state, params }>. Uses UploadProgress for progress bar.
+     */
+    async function collectFormDataWithFileUploads(form) {
+        const result = { state: {}, params: {} };
+        const inputs = form.querySelectorAll('[data-field-name]');
+        const fileUploadPromises = [];
+
+        for (const input of inputs) {
+            const fieldName = input.getAttribute('data-field-name');
+            const section = input.getAttribute('data-section');
+            const decode = input.getAttribute('data-decode');
+
+            if (input.type === 'file' && input.files && input.files.length > 0) {
+                const multiple = input.multiple;
+                const fieldWrapper = input.closest('.form-field');
+                const placeholder = fieldWrapper ? fieldWrapper.querySelector('.upload-progress-placeholder') : null;
+                const uploadFd = new FormData();
+                for (let i = 0; i < input.files.length; i++) {
+                    uploadFd.append(multiple ? 'files[]' : 'file', input.files[i]);
+                }
+                var fw = input.closest('.form-field');
+                if (fw && fw.getAttribute('data-max-size-mb')) uploadFd.append('max_size_mb', fw.getAttribute('data-max-size-mb'));
+                if (fw && fw.getAttribute('data-accept')) uploadFd.append('accept', fw.getAttribute('data-accept'));
+                const uploadPromise = (typeof window !== 'undefined' && window.UploadProgress && window.UploadProgress.uploadWithProgress
+                    ? window.UploadProgress.uploadWithProgress(UPLOAD_TEMP_URL, uploadFd, { progressContainer: placeholder || null })
+                    : Promise.resolve({ success: false, error: 'UploadProgress not loaded', uploads: [] })
+                ).then(function (res) {
+                    if (!res.success) throw new Error(res.error || 'Upload failed');
+                    const ids = (res.uploads || []).map(function (u) { return u.upload_id; });
+                    return { fieldName, section, value: multiple && ids.length > 1 ? ids : (ids[0] || null) };
+                });
+                fileUploadPromises.push(uploadPromise);
+            } else {
+                let value;
+                if (input.type === 'checkbox') {
+                    value = input.checked;
+                } else if (input.type === 'number' || input.type === 'range') {
+                    value = input.value === '' ? null : parseFloat(input.value);
+                } else if (input.type === 'file') {
+                    value = null;
+                } else if (decode === 'json') {
+                    const raw = (input.tagName === 'TEXTAREA' ? input.value : input.value).trim();
+                    if (raw === '') value = {};
+                    else {
+                        try { value = JSON.parse(raw); } catch (e) { value = raw; }
+                    }
+                } else {
+                    value = input.value;
+                }
+                if (section === 'state') result.state[fieldName] = value;
+                else if (section === 'params') result.params[fieldName] = value;
+            }
+        }
+
+        const fileResults = await Promise.all(fileUploadPromises);
+        fileResults.forEach(function (r) {
+            if (r.section === 'state') result.state[r.fieldName] = r.value;
+            else if (r.section === 'params') result.params[r.fieldName] = r.value;
+        });
+        return result;
+    }
+
+    /**
+     * Collect form data from all fields (synchronous; file fields return filename - use collectFormDataWithFileUploads for upload_id)
+     */
+    function collectFormData(form) {
+        const result = {
+            state: {},
+            params: {}
+        };
+        
+        const inputs = form.querySelectorAll('[data-field-name]');
+        inputs.forEach(input => {
+            const fieldName = input.getAttribute('data-field-name');
+            const section = input.getAttribute('data-section');
+            const decode = input.getAttribute('data-decode');
+            
+            let value;
+            if (input.type === 'checkbox') {
+                value = input.checked;
+            } else if (input.type === 'number' || input.type === 'range') {
+                value = input.value === '' ? null : parseFloat(input.value);
+            } else if (input.type === 'file') {
+                value = input.files.length > 0 ? input.files[0].name : null;
+            } else if (decode === 'json') {
+                const raw = (input.tagName === 'TEXTAREA' ? input.value : input.value).trim();
+                if (raw === '') {
+                    value = {};
+                } else {
+                    try {
+                        value = JSON.parse(raw);
+                    } catch (e) {
+                        value = raw;  // fallback if validation was skipped
+                    }
+                }
+            } else {
+                value = input.value;
+            }
+            
+            if (section === 'state') {
+                result.state[fieldName] = value;
+            } else if (section === 'params') {
+                result.params[fieldName] = value;
+            }
+        });
+        
+        return result;
+    }
+
+    /* ==========================================================================
+       JSON Tree Renderer - Browser DevTools-style navigable tree
+       ========================================================================== */
+    
+    /**
+     * Render JSON as an interactive navigable tree (like browser dev console)
+     */
+    function renderJsonTreeOutput(message, type, data) {
+        // Show message first
+        if (message) {
+            showCommandOutput(message, type);
+        }
+        
+        // If no data, nothing more to render
+        if (data === undefined || data === null) {
+            if (data === null) {
+                const output = document.createElement('div');
+                output.className = 'cmd-output cmd-output--json-tree';
+                output.innerHTML = '<span class="json-null">null</span>';
+                insertOutput(output);
+            }
+            return;
+        }
+        
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--json-tree';
+        
+        // Add copy button header
+        const header = document.createElement('div');
+        header.className = 'output-header';
+        try {
+            const jsonText = JSON.stringify(data, null, 2);
+            header.appendChild(createCopyButton(jsonText));
+        } catch (e) {
+            header.appendChild(createCopyButton(String(data)));
+        }
+        output.appendChild(header);
+        
+        // Build the tree - start collapsed (false), user expands what they need
+        const tree = createJsonTreeNode(data, '', 0, false);
+        output.appendChild(tree);
+        
+        insertOutput(output);
+    }
+    
+    /**
+     * Create a JSON tree node recursively
+     * @param {any} value - The value to render
+     * @param {string} key - The key name (empty for root)
+     * @param {number} depth - Current nesting depth
+     * @param {boolean} isExpanded - Whether to start expanded
+     * @returns {HTMLElement}
+     */
+    function createJsonTreeNode(value, key, depth, isExpanded) {
+        const node = document.createElement('div');
+        node.className = 'json-tree-node';
+        node.style.paddingLeft = (depth * 16) + 'px';
+        
+        const type = getJsonType(value);
+        
+        if (type === 'object' || type === 'array') {
+            // Expandable node
+            const isArray = type === 'array';
+            const keys = isArray ? value : Object.keys(value);
+            const count = isArray ? value.length : keys.length;
+            const isEmpty = count === 0;
+            
+            // Toggle button
+            const toggle = document.createElement('span');
+            toggle.className = 'json-tree-toggle' + (isExpanded && !isEmpty ? ' expanded' : '');
+            toggle.textContent = isEmpty ? ' ' : (isExpanded ? '▼' : '▶');
+            toggle.style.cursor = isEmpty ? 'default' : 'pointer';
+            
+            // Key name (if not root)
+            const keySpan = document.createElement('span');
+            keySpan.className = 'json-tree-key';
+            if (key !== '') {
+                keySpan.innerHTML = `<span class="json-key">"${escapeHtml(key)}"</span>: `;
+            }
+            
+            // Preview/summary
+            const preview = document.createElement('span');
+            preview.className = 'json-tree-preview';
+            
+            if (isEmpty) {
+                preview.innerHTML = isArray ? '<span class="json-bracket">[]</span>' : '<span class="json-bracket">{}</span>';
+            } else {
+                const openBracket = isArray ? '[' : '{';
+                const closeBracket = isArray ? ']' : '}';
+                const previewText = isArray 
+                    ? `Array(${count})`
+                    : `{${Object.keys(value).slice(0, 3).map(k => escapeHtml(k)).join(', ')}${count > 3 ? '...' : ''}}`;
+                preview.innerHTML = `<span class="json-bracket">${openBracket}</span><span class="json-preview-text">${previewText}</span>`;
+            }
+            
+            // Children container
+            const children = document.createElement('div');
+            children.className = 'json-tree-children';
+            children.style.display = (isExpanded && !isEmpty) ? 'block' : 'none';
+            
+            if (!isEmpty) {
+                if (isArray) {
+                    value.forEach((item, index) => {
+                        children.appendChild(createJsonTreeNode(item, String(index), depth + 1, false));
+                    });
+                } else {
+                    Object.keys(value).forEach(k => {
+                        children.appendChild(createJsonTreeNode(value[k], k, depth + 1, false));
+                    });
+                }
+                
+                // Closing bracket
+                const closingBracket = document.createElement('div');
+                closingBracket.className = 'json-tree-closing';
+                closingBracket.style.paddingLeft = (depth * 16) + 'px';
+                closingBracket.innerHTML = `<span class="json-bracket">${isArray ? ']' : '}'}</span>`;
+                children.appendChild(closingBracket);
+            }
+            
+            // Toggle click handler
+            if (!isEmpty) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const expanded = toggle.classList.toggle('expanded');
+                    toggle.textContent = expanded ? '▼' : '▶';
+                    children.style.display = expanded ? 'block' : 'none';
+                    
+                    // Update preview visibility
+                    const previewText = preview.querySelector('.json-preview-text');
+                    if (previewText) {
+                        previewText.style.display = expanded ? 'none' : 'inline';
+                    }
+                });
+                
+                // Also toggle on key click
+                keySpan.style.cursor = 'pointer';
+                keySpan.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggle.click();
+                });
+            }
+            
+            node.appendChild(toggle);
+            node.appendChild(keySpan);
+            node.appendChild(preview);
+            node.appendChild(children);
+            
+        } else {
+            // Primitive value (string, number, boolean, null)
+            const toggle = document.createElement('span');
+            toggle.className = 'json-tree-toggle';
+            toggle.textContent = ' ';  // Space placeholder for alignment
+            
+            const keySpan = document.createElement('span');
+            keySpan.className = 'json-tree-key';
+            if (key !== '') {
+                keySpan.innerHTML = `<span class="json-key">"${escapeHtml(key)}"</span>: `;
+            }
+            
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'json-tree-value json-' + type;
+            valueSpan.textContent = formatPrimitiveValue(value, type);
+            
+            node.appendChild(toggle);
+            node.appendChild(keySpan);
+            node.appendChild(valueSpan);
+        }
+        
+        return node;
+    }
+    
+    /**
+     * Get the JSON type of a value
+     */
+    function getJsonType(value) {
+        if (value === null) return 'null';
+        if (Array.isArray(value)) return 'array';
+        const t = typeof value;
+        if (t === 'object') return 'object';
+        if (t === 'string') return 'string';
+        if (t === 'number') return 'number';
+        if (t === 'boolean') return 'boolean';
+        return 'unknown';
+    }
+    
+    /**
+     * Format a primitive value for display
+     */
+    function formatPrimitiveValue(value, type) {
+        if (type === 'string') {
+            // Truncate long strings
+            const maxLen = 100;
+            const str = String(value);
+            if (str.length > maxLen) {
+                return '"' + str.substring(0, maxLen) + '..."';
+            }
+            return '"' + str + '"';
+        }
+        if (type === 'null') return 'null';
+        if (type === 'boolean') return value ? 'true' : 'false';
+        return String(value);
+    }
+    
+    /**
+     * Render file/folder tree structure (for plugin tree, etc.)
+     */
+    function renderFileTreeOutput(message, type, data) {
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--tree ${type}`;
+        output.innerHTML = `<pre>${escapeHtml(message)}</pre>`;
+        insertOutput(output);
+    }
+
+    function renderHtmlOutput(message, type) {
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--html ${type}`;
+        output.innerHTML = sanitizeHtml(message);
+        insertOutput(output);
+    }
+
+    /**
+     * Render data as an interactive table with resizable columns and pagination
+     */
+    function renderTableOutput(message, type, data) {
+        showCommandOutput(message, type);
+
+        var validation = validateTablePayload(data);
+        if (!validation.valid) {
+            console.error('[Table render] ' + validation.error, { data: data });
+            showCommandOutput(validation.error, 'error');
+            return;
+        }
+        if (data.rows.length === 0) {
+            return;
+        }
+
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--table';
+        
+        // Table container for horizontal scroll
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        
+        // Header row
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        data.columns.forEach((col, index) => {
+            const th = document.createElement('th');
+            th.textContent = col;
+            th.setAttribute('data-col-index', index);
+            
+            // Add resize handle
+            const resizer = document.createElement('div');
+            resizer.className = 'col-resizer';
+            resizer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                initColumnResize(e, th, table);
+            });
+            th.appendChild(resizer);
+            
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Body rows
+        const tbody = document.createElement('tbody');
+        const pageSize = data.page_size || data.limit || 100;
+        const currentPage = data.page || 1;
+        const totalRows = data.rows.length;
+        const startIndex = 0;  // Already paginated from server
+        const endIndex = totalRows;
+        
+        for (let i = startIndex; i < endIndex; i++) {
+            const row = data.rows[i];
+            const tr = document.createElement('tr');
+            
+            data.columns.forEach((col, colIndex) => {
+                const td = document.createElement('td');
+                const value = row[col] !== undefined ? row[col] : row[colIndex];
+                
+                if (value === null) {
+                    td.innerHTML = '<span class="null-value">NULL</span>';
+                } else if (typeof value === 'boolean') {
+                    td.innerHTML = value ? '<span class="bool-true">true</span>' : '<span class="bool-false">false</span>';
+                } else if (typeof value === 'number') {
+                    td.className = 'cell-number';
+                    td.textContent = value;
+                } else {
+                    td.textContent = String(value);
+                }
+                
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        
+        tableContainer.appendChild(table);
+        output.appendChild(tableContainer);
+        
+        // Footer with info and pagination
+        const footer = document.createElement('div');
+        footer.className = 'table-footer';
+        
+        // Row count info
+        const info = document.createElement('span');
+        info.className = 'table-info';
+        info.textContent = `Showing ${totalRows} row${totalRows !== 1 ? 's' : ''}`;
+        if (data.execution_time_ms) {
+            info.textContent += ` (${data.execution_time_ms}ms)`;
+        }
+        footer.appendChild(info);
+        
+        // Download CSV button
+        const csvBtn = document.createElement('button');
+        csvBtn.className = 'table-copy-btn table-export-btn';
+        csvBtn.innerHTML = '📋 CSV';
+        csvBtn.title = 'Download as CSV';
+        csvBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'csv', csvBtn);
+        });
+        footer.appendChild(csvBtn);
+        
+        // Download JSON button
+        const jsonBtn = document.createElement('button');
+        jsonBtn.className = 'table-copy-btn table-export-btn';
+        jsonBtn.innerHTML = '{ } JSON';
+        jsonBtn.title = 'Download as JSON';
+        jsonBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'json', jsonBtn);
+        });
+        footer.appendChild(jsonBtn);
+        
+        // Download Excel button
+        const excelBtn = document.createElement('button');
+        excelBtn.className = 'table-copy-btn table-export-btn table-excel-btn';
+        excelBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 17l2-4-2-4h1.5l1.25 2.5L12 9h1.5l-2 4 2 4H12l-1.25-2.5L9.5 17H8z"/></svg> Excel';
+        excelBtn.title = 'Download as Excel';
+        excelBtn.addEventListener('click', () => {
+            downloadTableData(data.columns, data.rows, 'excel', excelBtn);
+        });
+        footer.appendChild(excelBtn);
+        
+        output.appendChild(footer);
+        insertOutput(output);
+    }
+    
+    /**
+     * Convert table data to CSV string
+     */
+    function tableToCSV(columns, rows) {
+        const escape = (val) => {
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+        
+        const header = columns.map(escape).join(',');
+        const body = rows.map(row => {
+            return columns.map(col => escape(row[col] !== undefined ? row[col] : '')).join(',');
+        }).join('\n');
+        
+        return header + '\n' + body;
+    }
+    
+    /**
+     * Download table data via backend export API (CSV, Excel, JSON).
+     */
+    async function downloadTableData(columns, rows, format, btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ ...';
+        btn.disabled = true;
+        
+        const defaultFilenames = { csv: 'export.csv', excel: 'export.xlsx', json: 'export.json' };
+        
+        try {
+            const response = await fetch('/api/console/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    columns: columns,
+                    rows: rows,
+                    format: format
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.download_url) {
+                const link = document.createElement('a');
+                link.href = result.download_url.startsWith('/') ? result.download_url : '/api/' + result.download_url;
+                link.download = result.filename || defaultFilenames[format] || 'export';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                btn.innerHTML = '✅ Done';
+                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+            } else {
+                throw new Error(result.error || 'Export failed');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            btn.innerHTML = '❌ Error';
+            setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    
+    /**
+     * Initialize column resize drag
+     */
+    function initColumnResize(e, th, table) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const startX = e.clientX;
+        const startWidth = th.getBoundingClientRect().width;
+        const colIndex = parseInt(th.getAttribute('data-col-index'));
+        
+        // Add resizing class to body
+        document.body.classList.add('resizing-column');
+        th.classList.add('resizing');
+        
+        function onMouseMove(e) {
+            e.preventDefault();
+            const diff = e.clientX - startX;
+            const newWidth = Math.max(50, startWidth + diff);
+            th.style.width = newWidth + 'px';
+            th.style.minWidth = newWidth + 'px';
+            th.style.maxWidth = newWidth + 'px';
+            
+            // Also resize all cells in this column
+            const cells = table.querySelectorAll(`tbody td:nth-child(${colIndex + 1})`);
+            cells.forEach(cell => {
+                cell.style.width = newWidth + 'px';
+                cell.style.minWidth = newWidth + 'px';
+                cell.style.maxWidth = newWidth + 'px';
+            });
+        }
+        
+        function onMouseUp(e) {
+            e.preventDefault();
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.classList.remove('resizing-column');
+            th.classList.remove('resizing');
+        }
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    /* ==========================================================================
+       Chart Output - Dynamic charts (bar, pie, line, etc.)
+       ========================================================================== */
+    
+    /**
+     * Render interactive chart with dynamic controls
+     * @param {string} message - Chart title/description
+     * @param {string} type - Output type
+     * @param {object} data - Chart data: { type, labels, datasets, options }
+     */
+    function renderChartOutput(message, type, data) {
+        if (!data) return;
+        
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--chart';
+        
+        // Chart header
+        const header = document.createElement('div');
+        header.className = 'chart-header';
+        header.innerHTML = `
+            <span class="chart-title">${escapeHtml(message || 'Chart')}</span>
+            <div class="chart-controls">
+                <select class="chart-type-select">
+                    <option value="bar" ${data.type === 'bar' ? 'selected' : ''}>📊 Bar</option>
+                    <option value="line" ${data.type === 'line' ? 'selected' : ''}>📈 Line</option>
+                    <option value="pie" ${data.type === 'pie' ? 'selected' : ''}>🥧 Pie</option>
+                    <option value="doughnut" ${data.type === 'doughnut' ? 'selected' : ''}>🍩 Doughnut</option>
+                </select>
+            </div>
+        `;
+        output.appendChild(header);
+        
+        // Chart canvas container
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'chart-canvas-container';
+        
+        // Use simple SVG-based chart rendering (no external libs)
+        const chartSvg = createSimpleChart(data);
+        chartContainer.appendChild(chartSvg);
+        output.appendChild(chartContainer);
+        
+        // Chart legend
+        if (data.labels && data.datasets) {
+            const legend = createChartLegend(data);
+            output.appendChild(legend);
+        }
+        
+        // Type change handler
+        const typeSelect = header.querySelector('.chart-type-select');
+        typeSelect.addEventListener('change', () => {
+            const newType = typeSelect.value;
+            data.type = newType;
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(createSimpleChart(data));
+        });
+        
+        insertOutput(output);
+    }
+    
+    /**
+     * Create simple SVG chart
+     */
+    function createSimpleChart(data) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 400 250');
+        svg.setAttribute('class', 'chart-svg');
+        
+        const labels = data.labels || [];
+        const values = data.datasets?.[0]?.data || data.values || [];
+        const colors = data.datasets?.[0]?.backgroundColor || generateColors(values.length);
+        const chartType = data.type || 'bar';
+        
+        if (chartType === 'bar') {
+            renderBarChart(svg, labels, values, colors);
+        } else if (chartType === 'line') {
+            renderLineChart(svg, labels, values, colors);
+        } else if (chartType === 'pie' || chartType === 'doughnut') {
+            renderPieChart(svg, labels, values, colors, chartType === 'doughnut');
+        }
+        
+        return svg;
+    }
+    
+    function renderBarChart(svg, labels, values, colors) {
+        const maxVal = Math.max(...values, 1);
+        const barWidth = 300 / Math.max(values.length, 1);
+        const padding = 50;
+        
+        // Y axis
+        const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        yAxis.setAttribute('x1', padding);
+        yAxis.setAttribute('y1', 20);
+        yAxis.setAttribute('x2', padding);
+        yAxis.setAttribute('y2', 200);
+        yAxis.setAttribute('stroke', 'var(--log-debug)');
+        svg.appendChild(yAxis);
+        
+        // X axis
+        const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        xAxis.setAttribute('x1', padding);
+        xAxis.setAttribute('y1', 200);
+        xAxis.setAttribute('x2', 380);
+        xAxis.setAttribute('y2', 200);
+        xAxis.setAttribute('stroke', 'var(--log-debug)');
+        svg.appendChild(xAxis);
+        
+        // Bars
+        values.forEach((val, i) => {
+            const barHeight = (val / maxVal) * 170;
+            const x = padding + 10 + i * barWidth;
+            const y = 200 - barHeight;
+            
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', barWidth - 8);
+            rect.setAttribute('height', barHeight);
+            rect.setAttribute('fill', colors[i % colors.length]);
+            rect.setAttribute('rx', '3');
+            svg.appendChild(rect);
+            
+            // Value label
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x + (barWidth - 8) / 2);
+            text.setAttribute('y', y - 5);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', 'var(--term-fg)');
+            text.setAttribute('font-size', '10');
+            text.textContent = val;
+            svg.appendChild(text);
+            
+            // Label
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', x + (barWidth - 8) / 2);
+            label.setAttribute('y', 215);
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('fill', 'var(--log-debug)');
+            label.setAttribute('font-size', '9');
+            label.textContent = labels[i] || '';
+            svg.appendChild(label);
+        });
+    }
+    
+    function renderLineChart(svg, labels, values, colors) {
+        const maxVal = Math.max(...values, 1);
+        const width = 300;
+        const height = 170;
+        const padding = 50;
+        
+        // Axes
+        const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        yAxis.setAttribute('x1', padding);
+        yAxis.setAttribute('y1', 20);
+        yAxis.setAttribute('x2', padding);
+        yAxis.setAttribute('y2', 200);
+        yAxis.setAttribute('stroke', 'var(--log-debug)');
+        svg.appendChild(yAxis);
+        
+        const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        xAxis.setAttribute('x1', padding);
+        xAxis.setAttribute('y1', 200);
+        xAxis.setAttribute('x2', 380);
+        xAxis.setAttribute('y2', 200);
+        xAxis.setAttribute('stroke', 'var(--log-debug)');
+        svg.appendChild(xAxis);
+        
+        // Line
+        const points = values.map((val, i) => {
+            const x = padding + 10 + (i * width / Math.max(values.length - 1, 1));
+            const y = 200 - (val / maxVal) * height;
+            return `${x},${y}`;
+        }).join(' ');
+        
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points);
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', colors[0] || 'var(--accent)');
+        polyline.setAttribute('stroke-width', '2');
+        svg.appendChild(polyline);
+        
+        // Points
+        values.forEach((val, i) => {
+            const x = padding + 10 + (i * width / Math.max(values.length - 1, 1));
+            const y = 200 - (val / maxVal) * height;
+            
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', '4');
+            circle.setAttribute('fill', colors[0] || 'var(--accent)');
+            svg.appendChild(circle);
+        });
+    }
+    
+    function renderPieChart(svg, labels, values, colors, isDoughnut) {
+        const total = values.reduce((a, b) => a + b, 0) || 1;
+        const cx = 200;
+        const cy = 110;
+        const r = 80;
+        const innerR = isDoughnut ? 40 : 0;
+        
+        let startAngle = -Math.PI / 2;
+        
+        values.forEach((val, i) => {
+            const sliceAngle = (val / total) * 2 * Math.PI;
+            const endAngle = startAngle + sliceAngle;
+            
+            const x1 = cx + r * Math.cos(startAngle);
+            const y1 = cy + r * Math.sin(startAngle);
+            const x2 = cx + r * Math.cos(endAngle);
+            const y2 = cy + r * Math.sin(endAngle);
+            
+            const largeArc = sliceAngle > Math.PI ? 1 : 0;
+            
+            let d;
+            if (isDoughnut) {
+                const ix1 = cx + innerR * Math.cos(startAngle);
+                const iy1 = cy + innerR * Math.sin(startAngle);
+                const ix2 = cx + innerR * Math.cos(endAngle);
+                const iy2 = cy + innerR * Math.sin(endAngle);
+                d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+            } else {
+                d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+            }
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('fill', colors[i % colors.length]);
+            path.setAttribute('stroke', 'rgba(0,0,0,0.2)');
+            path.setAttribute('stroke-width', '1');
+            svg.appendChild(path);
+            
+            startAngle = endAngle;
+        });
+    }
+    
+    function createChartLegend(data) {
+        const legend = document.createElement('div');
+        legend.className = 'chart-legend';
+        
+        const labels = data.labels || [];
+        const colors = data.datasets?.[0]?.backgroundColor || generateColors(labels.length);
+        
+        labels.forEach((label, i) => {
+            const item = document.createElement('span');
+            item.className = 'legend-item';
+            item.innerHTML = `<span class="legend-color" style="background:${colors[i % colors.length]}"></span>${escapeHtml(label)}`;
+            legend.appendChild(item);
+        });
+        
+        return legend;
+    }
+    
+    function generateColors(count) {
+        const palette = [
+            '#4dc9f6', '#f67019', '#f53794', '#537bc4', '#acc236',
+            '#166a8f', '#00a950', '#58595b', '#8549ba', '#ff6384'
+        ];
+        return Array.from({length: count}, (_, i) => palette[i % palette.length]);
+    }
+
+    /* ==========================================================================
+       Download Output - Styled download link with file icon
+       ========================================================================== */
+    
+    /**
+     * Render styled download link with dynamic file icon
+     * @param {string} message - Download description
+     * @param {string} type - Output type
+     * @param {object} data - { url, filename, size, mime_type }
+     */
+    function renderDownloadOutput(message, type, data) {
+        if (!data || !data.url) return;
+        
+        const output = document.createElement('div');
+        output.className = 'cmd-output cmd-output--download';
+        
+        const filename = data.filename || data.url.split('/').pop() || 'download';
+        const ext = filename.split('.').pop().toLowerCase();
+        const icon = getFileIcon(ext);
+        const sizeStr = data.size ? formatFileSize(data.size) : '';
+        
+        output.innerHTML = `
+            <a href="${escapeHtml(data.url)}" class="download-link" download="${escapeHtml(filename)}" target="_blank">
+                <span class="download-icon">${icon}</span>
+                <div class="download-info">
+                    <span class="download-filename">${escapeHtml(filename)}</span>
+                    ${sizeStr ? `<span class="download-size">${sizeStr}</span>` : ''}
+                    ${message ? `<span class="download-desc">${escapeHtml(message)}</span>` : ''}
+                </div>
+                <span class="download-action">⬇️ Download</span>
+            </a>
+        `;
+        
+        insertOutput(output);
+    }
+    
+    /**
+     * Get emoji icon based on file extension
+     */
+    function getFileIcon(ext) {
+        const icons = {
+            // Documents
+            'pdf': '📕',
+            'doc': '📘', 'docx': '📘',
+            'xls': '📗', 'xlsx': '📗',
+            'ppt': '📙', 'pptx': '📙',
+            'txt': '📄',
+            'md': '📝',
+            'csv': '📊',
+            // Code
+            'js': '🟨', 'ts': '🟦',
+            'py': '🐍',
+            'html': '🌐', 'css': '🎨',
+            'json': '{ }',
+            'xml': '📋',
+            'sql': '🗃️',
+            // Images
+            'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🖼️', 'webp': '🖼️',
+            // Archives
+            'zip': '📦', 'rar': '📦', 'tar': '📦', 'gz': '📦', '7z': '📦',
+            // Media
+            'mp3': '🎵', 'wav': '🎵', 'ogg': '🎵',
+            'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'mkv': '🎬',
+            // Data
+            'db': '💾', 'sqlite': '💾',
+            // Default
+            'default': '📁'
+        };
+        return icons[ext] || icons['default'];
+    }
+    
+    /**
+     * Format file size in human readable format
+     */
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function renderCodeOutput(message, type, data) {
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--code ${type}`;
+        const lang = data?.language || 'plaintext';
+        output.innerHTML = `<pre class="code-block" data-lang="${escapeHtml(lang)}">${escapeHtml(message)}</pre>`;
+        insertOutput(output);
+    }
+
+    function renderProgressOutput(message, type) {
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--progress ${type}`;
+        output.innerHTML = `<span class="progress-spinner"></span><span class="progress-message">${escapeHtml(message)}</span>`;
+        insertOutput(output);
+        state.progressElements.push(output);
+    }
+
+    function renderTreeOutput(message, type, data) {
+        const output = document.createElement('div');
+        output.className = `cmd-output cmd-output--tree ${type}`;
+        output.innerHTML = `<pre>${escapeHtml(message)}</pre>`;
+        insertOutput(output);
+    }
+
+    function clearProgressIndicators() {
+        state.progressElements.forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        state.progressElements = [];
+        
+        if (dom.splitOutput) {
+            const splitProgress = dom.splitOutput.querySelectorAll('.cmd-output--progress');
+            splitProgress.forEach(el => el.remove());
+        }
+    }
+
+    function insertOutput(element) {
+        // Insert in main output (before prompt if exists)
+        if (state.currentPrompt) {
+            dom.output.insertBefore(element, state.currentPrompt);
+        } else {
+            dom.output.appendChild(element);
+        }
+        
+        // Always copy to split output if it exists
+        if (dom.splitOutput) {
+            const splitElement = element.cloneNode(true);
+            // Re-attach event listeners for interactive elements
+            reattachEventListeners(splitElement);
+            // Insert before split prompt if exists, otherwise append
+            if (state.splitPrompt) {
+                dom.splitOutput.insertBefore(splitElement, state.splitPrompt);
+            } else {
+                dom.splitOutput.appendChild(splitElement);
+            }
+            if (state.autoScroll) {
+                dom.splitOutput.scrollTop = dom.splitOutput.scrollHeight;
+            }
+        }
+        
+        if (state.autoScroll) {
+            scrollToBottom();
+        }
+    }
+    
+    /**
+     * Re-attach event listeners to cloned elements for split view
+     */
+    function reattachEventListeners(element) {
+        // Log entry toggle (CUSTOM etc. - expand/collapse details)
+        element.querySelectorAll('.log-entry .log-toggle').forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const entry = toggle.closest('.log-entry');
+                if (entry) {
+                    entry.classList.toggle('expanded');
+                    toggle.textContent = entry.classList.contains('expanded') ? '▼' : '▶';
+                    toggle.title = entry.classList.contains('expanded') ? 'Hide JSON payload' : 'Show full JSON payload';
+                }
+            });
+        });
+
+        // Section toggle headers
+        element.querySelectorAll('.section-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const toggle = header.querySelector('.section-toggle');
+                if (toggle) {
+                    const expanded = toggle.textContent === '▼';
+                    toggle.textContent = expanded ? '▶' : '▼';
+                    const content = header.nextElementSibling;
+                    if (content && content.classList.contains('section-content')) {
+                        content.style.display = expanded ? 'none' : 'block';
+                    }
+                    header.classList.toggle('section-header--active', !expanded);
+                }
+            });
+        });
+        
+        // JSON tree toggle nodes (for navigable tree)
+        element.querySelectorAll('.json-tree-toggle').forEach(toggle => {
+            if (toggle.textContent.trim() !== '') {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const node = toggle.closest('.json-tree-node');
+                    if (node) {
+                        const children = node.querySelector('.json-tree-children');
+                        if (children) {
+                            const isExpanded = toggle.classList.toggle('expanded');
+                            toggle.textContent = isExpanded ? '▼' : '▶';
+                            children.style.display = isExpanded ? 'block' : 'none';
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Form section headers (State/Params togglers)
+        element.querySelectorAll('.form-section-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const toggle = header.querySelector('.section-toggle');
+                if (toggle) {
+                    const expanded = toggle.classList.toggle('expanded');
+                    toggle.textContent = expanded ? '▼' : '▶';
+                    const content = header.nextElementSibling;
+                    if (content && content.classList.contains('form-section-content')) {
+                        content.style.display = expanded ? 'grid' : 'none';
+                    }
+                }
+            });
+        });
+        
+        // Table column resizers
+        element.querySelectorAll('.col-resizer').forEach(resizer => {
+            const th = resizer.closest('th');
+            const table = resizer.closest('table');
+            if (th && table) {
+                resizer.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    initColumnResize(e, th, table);
+                });
+            }
+        });
+        
+        // Table column drag & drop
+        element.querySelectorAll('.data-table th[draggable="true"]').forEach(th => {
+            const table = th.closest('table');
+            const colIndex = parseInt(th.getAttribute('data-col-index'));
+            
+            th.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', colIndex);
+                th.classList.add('dragging');
+            });
+            th.addEventListener('dragend', () => {
+                th.classList.remove('dragging');
+            });
+            th.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                th.classList.add('drag-over');
+            });
+            th.addEventListener('dragleave', () => {
+                th.classList.remove('drag-over');
+            });
+            th.addEventListener('drop', (e) => {
+                e.preventDefault();
+                th.classList.remove('drag-over');
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const toIndex = colIndex;
+                if (fromIndex !== toIndex && table) {
+                    // Simple column reorder for cloned table
+                    reorderClonedTableColumns(table, fromIndex, toIndex);
+                }
+            });
+        });
+        
+        // Table download/export buttons
+        element.querySelectorAll('.table-export-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tableContainer = btn.closest('.cmd-output-wrapper') || btn.closest('.output-section--render');
+                const table = tableContainer?.querySelector('.data-table');
+                if (table) {
+                    const data = extractTableData(table);
+                    const btnText = btn.textContent || '';
+                    let format = 'csv';
+                    if (btnText.includes('Excel') || btn.classList.contains('table-excel-btn')) format = 'excel';
+                    else if (btnText.includes('JSON')) format = 'json';
+                    downloadTableData(data.columns, data.rows, format, btn);
+                }
+            });
+        });
+        
+        // Chart type selector
+        element.querySelectorAll('.chart-type-select').forEach(select => {
+            const chartContainer = select.closest('.output-section--render')?.querySelector('.chart-canvas-container');
+            if (chartContainer) {
+                select.addEventListener('change', () => {
+                    // Chart type change not fully functional in clone - would need data
+                });
+            }
+        });
+        
+        // Form buttons - fully functional in split view
+        element.querySelectorAll('.interactive-form').forEach(form => {
+            const requestId = form.getAttribute('data-request-id');
+            
+            const sendBtn = form.querySelector('.form-send-btn');
+            const cancelBtn = form.querySelector('.form-cancel-btn');
+            
+            if (sendBtn) {
+                sendBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFormSubmit(requestId, form, false);
+                });
+            }
+            
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFormSubmit(requestId, form, true);
+                });
+            }
+        });
+    }
+    
+    /**
+     * Reorder columns in a cloned table (simplified version without data reference)
+     */
+    function reorderClonedTableColumns(table, fromIndex, toIndex) {
+        // Reorder header cells
+        const headerRow = table.querySelector('thead tr');
+        if (headerRow) {
+            const headerCells = Array.from(headerRow.children);
+            const [movedHeader] = headerCells.splice(fromIndex, 1);
+            headerCells.splice(toIndex, 0, movedHeader);
+            headerRow.innerHTML = '';
+            headerCells.forEach((cell, i) => {
+                cell.setAttribute('data-col-index', i);
+                headerRow.appendChild(cell);
+            });
+        }
+        
+        // Reorder body cells
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const cells = Array.from(row.children);
+            const [movedCell] = cells.splice(fromIndex, 1);
+            cells.splice(toIndex, 0, movedCell);
+            row.innerHTML = '';
+            cells.forEach(cell => row.appendChild(cell));
+        });
+    }
+    
+    /**
+     * Handle form submit from any panel (main or split)
+     * Disables ALL forms with same request_id to prevent duplicates.
+     * File fields are uploaded via HTTP first (with progress bar), then form sends upload_id(s).
+     */
+    async function handleFormSubmit(requestId, sourceForm, isCancelled) {
+        if (!requestId) {
+            console.warn('handleFormSubmit: no requestId provided');
+            return;
+        }
+        
+        // Validate JSON fields before submit (block Send if invalid)
+        if (!isCancelled) {
+            const validation = validateFormJsonFields(sourceForm);
+            if (!validation.valid) {
+                sourceForm.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+                const prevErr = sourceForm.querySelector('.form-validation-error');
+                if (prevErr) prevErr.remove();
+                const first = validation.errors[0];
+                const inputEl = sourceForm.querySelector(`[data-field-name="${first.field}"][data-section="${first.section}"]`);
+                if (inputEl) {
+                    inputEl.classList.add('field-error');
+                    inputEl.focus();
+                    inputEl.title = first.message;
+                }
+                const errMsg = document.createElement('div');
+                errMsg.className = 'form-validation-error';
+                errMsg.textContent = `${first.field}: ${first.message}`;
+                sourceForm.insertBefore(errMsg, sourceForm.firstChild);
+                return;
+            }
+        }
+        
+        // Find ALL forms with this request_id in both main and split panels
+        const allForms = document.querySelectorAll(`.interactive-form[data-request-id="${requestId}"]`);
+        const hasFileUploads = !isCancelled && sourceForm.querySelectorAll('input[type="file"][data-field-name]').length > 0 &&
+            Array.from(sourceForm.querySelectorAll('input[type="file"]')).some(function (inp) { return inp.files && inp.files.length > 0; });
+
+        // Show "Uploading..." during file upload
+        if (hasFileUploads) {
+            allForms.forEach(function (form) {
+                const sendBtn = form.querySelector('.form-send-btn');
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<span class="send-icon">⏳</span> Uploading...';
+                }
+            });
+        }
+
+        let formData;
+        try {
+            formData = isCancelled ? { cancelled: true } : await collectFormDataWithFileUploads(sourceForm);
+        } catch (err) {
+            console.error('handleFormSubmit: collect/upload failed', err);
+            allForms.forEach(function (form) {
+                const sendBtn = form.querySelector('.form-send-btn');
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<span class="send-icon">✓</span> Send';
+                }
+            });
+            const prevErr = sourceForm.querySelector('.form-validation-error');
+            if (prevErr) prevErr.remove();
+            const errMsg = document.createElement('div');
+            errMsg.className = 'form-validation-error';
+            errMsg.textContent = 'Upload failed: ' + (err && err.message ? err.message : String(err));
+            sourceForm.insertBefore(errMsg, sourceForm.firstChild);
+            return;
+        }
+        
+        console.log('handleFormSubmit:', { requestId, isCancelled, formData, formsFound: allForms.length });
+        
+        // Disable all matching forms
+        allForms.forEach(form => {
+            const wrapper = form.closest('.cmd-output-wrapper') || form.closest('.cmd-output--form');
+            const sendBtn = form.querySelector('.form-send-btn');
+            const cancelBtn = form.querySelector('.form-cancel-btn');
+            
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = isCancelled 
+                    ? '<span class="send-icon">✕</span> Cancelled'
+                    : '<span class="send-icon">✓</span> Sent';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = true;
+            }
+            
+            if (wrapper) {
+                wrapper.classList.add(isCancelled ? 'form-cancelled' : 'form-submitted');
+            }
+        });
+        
+        // Emit socket event ONCE with correct field name 'response'
+        if (state.socket && state.socket.connected) {
+            state.socket.emit('execution_response', {
+                request_id: requestId,
+                response: formData  // Backend expects 'response', not 'data'
+            });
+            console.log('execution_response emitted for:', requestId);
+        } else {
+            console.warn('Socket not connected, cannot emit execution_response');
+        }
+    }
+    
+    /**
+     * Extract data from table DOM for copy operations
+     */
+    function extractTableData(table) {
+        const columns = [];
+        const rows = [];
+        
+        table.querySelectorAll('thead th').forEach(th => {
+            const label = th.querySelector('.col-label');
+            columns.push(label ? label.textContent : th.textContent);
+        });
+        
+        table.querySelectorAll('tbody tr').forEach(tr => {
+            const row = {};
+            tr.querySelectorAll('td').forEach((td, i) => {
+                const nullSpan = td.querySelector('.null-value');
+                const boolSpan = td.querySelector('.bool-true, .bool-false');
+                if (nullSpan) {
+                    row[columns[i]] = null;
+                } else if (boolSpan) {
+                    row[columns[i]] = boolSpan.classList.contains('bool-true');
+                } else {
+                    row[columns[i]] = td.textContent;
+                }
+            });
+            rows.push(row);
+        });
+        
+        return { columns, rows };
+    }
+
+    function syntaxHighlightJson(json) {
+        return json
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, 
+                function (match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        cls = /:$/.test(match) ? 'json-key' : 'json-string';
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+    }
+
+    function sanitizeHtml(html) {
+        const allowedTags = ['b', 'i', 'u', 'strong', 'em', 'span', 'br', 'p', 'a', 'code', 'pre'];
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        
+        const walk = (node) => {
+            const children = [...node.childNodes];
+            children.forEach(child => {
+                if (child.nodeType === 1) {
+                    if (!allowedTags.includes(child.tagName.toLowerCase())) {
+                        const text = document.createTextNode(child.textContent);
+                        node.replaceChild(text, child);
+                    } else {
+                        [...child.attributes].forEach(attr => {
+                            if (attr.name.startsWith('on') || attr.name === 'style') {
+                                child.removeAttribute(attr.name);
+                            }
+                            if (attr.name === 'href' && !attr.value.startsWith('http')) {
+                                child.removeAttribute(attr.name);
+                            }
+                        });
+                        walk(child);
+                    }
+                }
+            });
+        };
+        walk(div);
+        return div.innerHTML;
+    }
+
+    function executeCommand(cmd, savePayload) {
+        var parts = cmd.split(/\s+/);
+        var command = parts[0].toLowerCase();
+
+        if (command === 'save' && !savePayload) {
+            var getPayload = window.HytheraConsole && window.HytheraConsole.getSavePayload;
+            if (getPayload) {
+                var result = getPayload();
+                if (result.error) {
+                    state.cmdHistory.push(cmd);
+                    if (state.cmdHistory.length > 100) state.cmdHistory.shift();
+                    showExecutedCommand(cmd);
+                    if (state.currentPrompt) { state.currentPrompt.remove(); state.currentPrompt = null; }
+                    if (state.splitPrompt) { state.splitPrompt.remove(); state.splitPrompt = null; }
+                    showCommandOutput(result.error, 'error');
+                    if (state.connected) createPrompt();
+                    return;
+                }
+                if (result.payload) savePayload = result.payload;
+            }
+        }
+
+        state.cmdHistory.push(cmd);
+        if (state.cmdHistory.length > 100) {
+            state.cmdHistory.shift();
+        }
+        showExecutedCommand(cmd);
+
+        // Remove BOTH prompts (main and split)
+        if (state.currentPrompt) {
+            state.currentPrompt.remove();
+            state.currentPrompt = null;
+        }
+        if (state.splitPrompt) {
+            state.splitPrompt.remove();
+            state.splitPrompt = null;
+        }
+
+        if (command === 'save' && savePayload) {
+            var prepare = window.HytheraConsole && window.HytheraConsole.prepareSaveForSend;
+            if (prepare) prepare();
+        }
+
+        if (command === 'history') {
+            if (state.cmdHistory.length === 0) {
+                showCommandOutput('No command history', 'info');
+            } else {
+                const historyText = state.cmdHistory
+                    .map((c, i) => `  ${i + 1}. ${c}`)
+                    .join('\n');
+                showCommandOutput(`Command history:\n${historyText}`, 'info');
+            }
+            if (state.connected) createPrompt();
+            return;
+        }
+
+        if (!state.connected) {
+            showCommandOutput('Error: Not connected to server', 'error');
+            createPrompt();  // Recreate prompt even on error
+            return;
+        }
+
+        // Emit via Socket.IO
+        if (state.socket) {
+            const payload = { raw_command: cmd };
+            if (savePayload) payload.save_payload = savePayload;
+            state.socket.emit('console_command', payload);
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        state.connected = connected;
+        dom.statusDot.classList.toggle('connected', connected);
+        dom.statusText.textContent = connected ? 'Connected' : 'Disconnected';
+    }
+
+    function handleClear() {
+        const entries = dom.output.querySelectorAll('.log-entry, .cmd-executed, .cmd-output, .cmd-line');
+        entries.forEach(e => e.remove());
+        state.currentPrompt = null;
+        state.splitPrompt = null;
+        
+        if (dom.splitOutput) {
+            dom.splitOutput.innerHTML = '';
+        }
+        
+        state.eventCount = 0;
+        
+        if (!state.connected && dom.empty) {
+            dom.empty.style.display = 'flex';
+        }
+        
+        addSystemMessage('Console cleared', 'debug');
+        
+        if (state.connected) {
+            createPrompt();
+        }
+    }
+
+    function handleToggleScroll() {
+        state.autoScroll = !state.autoScroll;
+        dom.btnScroll.classList.toggle('active', state.autoScroll);
+        dom.btnScroll.title = state.autoScroll ? 'Auto-scroll: ON' : 'Auto-scroll: OFF';
+        
+        if (state.autoScroll) {
+            scrollToBottom();
+        }
+    }
+
+    function handleReconnect() {
+        addSystemMessage('Reconnecting...', 'info');
+        window.dispatchEvent(new CustomEvent('console-reconnect'));
+    }
+
+    function syncConsoleToSplit() {
+        if (!dom.splitOutput || !dom.output) return;
+        
+        dom.splitOutput.innerHTML = '';
+        state.splitPrompt = null;
+        
+        // Include all output types: log entries, commands, outputs (old and new wrapper style)
+        const entries = dom.output.querySelectorAll('.log-entry, .cmd-executed, .cmd-output, .cmd-output-wrapper, .cmd-line');
+        entries.forEach(function(entry) {
+            // Skip the active prompt line (with input)
+            if (entry.classList.contains('cmd-line') && entry.querySelector('input')) {
+                return;
+            }
+            const clone = entry.cloneNode(true);
+            // Re-attach event listeners for interactive elements
+            reattachEventListeners(clone);
+            dom.splitOutput.appendChild(clone);
+        });
+        
+        if (state.connected && state.currentPrompt) {
+            createSplitPrompt();
+        }
+        
+        if (state.autoScroll) {
+            dom.splitOutput.scrollTop = dom.splitOutput.scrollHeight;
+        }
+    }
+
+    function init() {
+        dom.btnClear.addEventListener('click', handleClear);
+        dom.btnScroll.addEventListener('click', handleToggleScroll);
+
+        window.addEventListener('menu-reconnect', handleReconnect);
+        
+        window.addEventListener('console-command', function(e) {
+            if (e.detail && e.detail.command) {
+                executeCommand(e.detail.command, e.detail.save_payload);
+            }
+        });
+        
+        function handleToggleClick(e) {
+            const toggle = e.target.closest('.log-toggle');
+            if (toggle) {
+                e.stopPropagation();
+                const entry = toggle.closest('.log-entry');
+                if (entry) {
+                    entry.classList.toggle('expanded');
+                    toggle.textContent = entry.classList.contains('expanded') ? '▼' : '▶';
+                    toggle.title = entry.classList.contains('expanded') ? 'Hide JSON payload' : 'Show full JSON payload';
+                }
+            }
+        }
+        
+        if (dom.output) {
+            dom.output.addEventListener('click', handleToggleClick);
+        }
+        
+        if (dom.splitOutput) {
+            dom.splitOutput.addEventListener('click', handleToggleClick);
+        }
+
+        if (dom.splitBtnClear) {
+            dom.splitBtnClear.addEventListener('click', handleClear);
+        }
+        if (dom.splitBtnScroll) {
+            dom.splitBtnScroll.addEventListener('click', function() {
+                handleToggleScroll();
+                this.classList.toggle('active', state.autoScroll);
+            });
+        }
+
+        function closeAllFilterDropdowns() {
+            if (dom.filterDropdown) dom.filterDropdown.classList.remove('open');
+            if (dom.splitFilterDropdown) dom.splitFilterDropdown.classList.remove('open');
+        }
+
+        function toggleFilterDropdown(dropdown, otherDropdown) {
+            if (otherDropdown) otherDropdown.classList.remove('open');
+            if (dropdown) dropdown.classList.toggle('open');
+        }
+
+        function syncFilterCheckboxes(sourceDropdown, targetDropdown) {
+            if (!targetDropdown) return;
+            Object.keys(state.filterLevels).forEach(function(level) {
+                const checkbox = targetDropdown.querySelector(`input[data-level="${level}"]`);
+                if (checkbox) checkbox.checked = state.filterLevels[level];
+            });
+        }
+
+        function handleFilterChange(checkbox) {
+            const level = checkbox.getAttribute('data-level');
+            state.filterLevels[level] = checkbox.checked;
+            applyLogFilters();
+            localStorage.setItem('orkestro-log-filters', JSON.stringify(state.filterLevels));
+            syncFilterCheckboxes(null, dom.filterDropdown);
+            syncFilterCheckboxes(null, dom.splitFilterDropdown);
+        }
+
+        if (dom.btnFilter) {
+            dom.btnFilter.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleFilterDropdown(dom.filterDropdown, dom.splitFilterDropdown);
+            });
+        }
+
+        if (dom.splitBtnFilter) {
+            dom.splitBtnFilter.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleFilterDropdown(dom.splitFilterDropdown, dom.filterDropdown);
+            });
+        }
+
+        if (dom.filterDropdown) {
+            dom.filterDropdown.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    handleFilterChange(this);
+                });
+            });
+        }
+
+        if (dom.splitFilterDropdown) {
+            dom.splitFilterDropdown.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    handleFilterChange(this);
+                });
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            const container = e.target.closest('.filter-dropdown-container');
+            if (!container) {
+                closeAllFilterDropdowns();
+            }
+        });
+
+        const savedFilters = localStorage.getItem('orkestro-log-filters');
+        if (savedFilters) {
+            try {
+                const filters = JSON.parse(savedFilters);
+                Object.assign(state.filterLevels, filters);
+                syncFilterCheckboxes(null, dom.filterDropdown);
+                syncFilterCheckboxes(null, dom.splitFilterDropdown);
+            } catch (e) {}
+        }
+        
+        window.addEventListener('split-view-enabled', function() {
+            syncConsoleToSplit();
+        });
+
+        addSystemMessage('Hythera Console initialized', 'info');
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Expose API for console-socket.js
+    window.HytheraConsole = {
+        state: state,
+        dom: dom,
+        addLogEntry: addLogEntry,
+        addSystemMessage: addSystemMessage,
+        createPrompt: createPrompt,
+        showCommandOutput: showCommandOutput,
+        renderConsoleOutput: renderConsoleOutput,
+        loadCreatedCodeIntoEditor: loadCreatedCodeIntoEditor,
+        clearProgressIndicators: clearProgressIndicators,
+        updateConnectionStatus: updateConnectionStatus,
+        handleClear: handleClear
+    };
+
+})();
+
+/* ==========================================================================
+   Code Editor Application
+   ========================================================================== */
+(function() {
+    'use strict';
+
+    const codeState = {
+        editor: null,
+        editorDirty: false,
+        lastSavedValue: '',
+        userEditEnabled: false,
+        currentFile: null,
+        runMode: localStorage.getItem('orkestro-run-mode') || 'direct',
+        outputMode: localStorage.getItem('orkestro-output-mode') || 'debug',
+        saveStatus: 'idle'  // idle | dirty | success | error
+    };
+
+    const codeDom = {
+        btnEditToggle: document.getElementById('btn-edit-toggle'),
+        btnSaveFile: document.getElementById('btn-save-file'),
+        btnRunCode: document.getElementById('btn-run-code'),
+        btnAiAssist: document.getElementById('btn-ai-assist'),
+        cursorPos: document.getElementById('code-cursor-pos'),
+        editorContainer: document.getElementById('code-editor'),
+        splitBtnEdit: document.getElementById('split-btn-edit'),
+        splitBtnSave: document.getElementById('split-btn-save'),
+        splitBtnRun: document.getElementById('split-btn-run'),
+        splitBtnAi: document.getElementById('split-btn-ai'),
+        splitEditorContainer: document.getElementById('split-code-editor')
+    };
+
+    const ICONS = {
+        EDIT: '✎',
+        LOCK: '🔒',
+        SAVE: '💾',
+        SAVED: '✓',
+        SAVE_WARNING: '⚠',
+        SAVE_ERROR: '✗'
+    };
+
+    const defaultTemplate = `# =============================================================================
+# Hythera Plugin Editor
+# =============================================================================
+#
+# This editor allows you to create and modify Node and Workflow plugins.
+#
+# GETTING STARTED:
+# ----------------
+#
+# To CREATE a new plugin, use the console command:
+#
+#     create node <node_id> --class ClassName --path <module.path>
+#     create workflow <wf_id> --class ClassName --path <module.path>
+#
+# --class and --path are REQUIRED. Example:
+#     create node my_processor --class MyProcessorNode --path nodes.custom.my_processor
+#
+# To OPEN an existing plugin for editing:
+#
+#     open node <module_path>
+#     open workflow <module_path>
+#
+# Example:
+#     open node orkestro.core.plugins.nodes.old.developer.my_node
+#
+# After creating or opening a plugin, its code will appear here for editing.
+# Use the SAVE button to save changes, then REGISTER the plugin to activate it.
+#
+# For more commands, type 'help' in the console.
+# =============================================================================
+`;
+
+    function updateSaveButtonIcon() {
+        const btns = [codeDom.btnSaveFile, codeDom.splitBtnSave].filter(Boolean);
+        btns.forEach(function(btn) {
+            btn.classList.remove('saved', 'save-error', 'save-dirty');
+            if (codeState.saveStatus === 'error') {
+                btn.textContent = ICONS.SAVE_ERROR;
+                btn.title = 'Save failed';
+                btn.classList.add('save-error');
+            } else if (codeState.editorDirty || codeState.saveStatus === 'dirty') {
+                btn.textContent = ICONS.SAVE_WARNING;
+                btn.title = 'Unsaved changes';
+                btn.classList.add('save-dirty');
+            } else {
+                btn.textContent = ICONS.SAVED;
+                btn.title = 'Saved';
+                btn.classList.add('saved');
+            }
+        });
+    }
+
+    function setEditorSavedState(success) {
+        codeState.editorDirty = false;
+        if (codeState.editor && codeState.editor.value != null) {
+            codeState.lastSavedValue = String(codeState.editor.value);
+        }
+        codeState.saveStatus = success !== false ? 'idle' : 'error';
+        updateSaveButtonIcon();
+    }
+
+    function updateEditToggleButton() {
+        if (!codeDom.btnEditToggle) return;
+        const editable = codeState.userEditEnabled;
+        codeDom.btnEditToggle.title = editable ? 'Disable editing' : 'Enable editing';
+        codeDom.btnEditToggle.textContent = editable ? ICONS.LOCK : ICONS.EDIT;
+        codeDom.btnEditToggle.classList.toggle('active', editable);
+    }
+
+    function applyEditorEditability() {
+        if (!codeState.editor) return;
+        var editable = codeState.userEditEnabled && !isPluginReadOnly();
+        codeState.editor.readOnly = !editable;
+        codeDom.editorContainer.setAttribute('data-readonly', !editable);
+        updateEditToggleButton();
+        
+        if (window.__splitCodeEditor) {
+            window.__splitCodeEditor.readOnly = !editable;
+        }
+        if (codeDom.splitEditorContainer) {
+            codeDom.splitEditorContainer.setAttribute('data-readonly', !editable);
+        }
+        if (codeDom.splitBtnEdit) {
+            codeDom.splitBtnEdit.classList.toggle('active', codeState.userEditEnabled);
+            codeDom.splitBtnEdit.textContent = codeState.userEditEnabled ? ICONS.LOCK : ICONS.EDIT;
+            codeDom.splitBtnEdit.title = codeState.userEditEnabled ? 'Disable editing' : 'Enable editing';
+        }
+    }
+
+    function applyEditSaveVisibility() {
+        var readOnly = isPluginReadOnly();
+        var editBtns = [codeDom.btnEditToggle, codeDom.splitBtnEdit].filter(Boolean);
+        var saveBtns = [codeDom.btnSaveFile, codeDom.splitBtnSave].filter(Boolean);
+        editBtns.forEach(function(btn) {
+            btn.classList.toggle('toolbar-readonly', readOnly);
+            btn.disabled = readOnly;
+        });
+        saveBtns.forEach(function(btn) {
+            btn.style.display = readOnly ? 'none' : '';
+        });
+        applyEditorEditability();
+        if (!readOnly) updateSaveButtonIcon();
+    }
+
+    function isPluginReadOnly() {
+        var status = (codeState.currentFile && codeState.currentFile.registration_status) || '';
+        return status === 'OK' || status === 'Pub';
+    }
+
+    function handleEditToggle() {
+        if (isPluginReadOnly()) {
+            var msg = 'Plugin is registered (OK) or published (Pub). To edit: unreg the plugin first, then open and run in direct mode.';
+            if (window.HytheraConsole && window.HytheraConsole.addSystemMessage) {
+                window.HytheraConsole.addSystemMessage(msg, 'warning');
+            } else {
+                console.warn(msg);
+            }
+            return;
+        }
+        codeState.userEditEnabled = !codeState.userEditEnabled;
+        applyEditorEditability();
+    }
+
+    function handleSaveFile() {
+        if (!codeState.editor) {
+            console.warn('Editor not ready');
+            return;
+        }
+        var content = codeState.editor.value || '';
+        if (!content.trim()) {
+            console.warn('No content to save');
+            return;
+        }
+        var fileInfo = codeState.currentFile;
+        if (!fileInfo || !fileInfo.module_path || !fileInfo.node_id || !fileInfo.class_name) {
+            codeState.saveStatus = 'error';
+            updateSaveButtonIcon();
+            if (window.HytheraConsole && window.HytheraConsole.addSystemMessage) {
+                window.HytheraConsole.addSystemMessage('Cannot save: open a plugin first (open node <module_path>).', 'error');
+            }
+            return;
+        }
+        if (isPluginReadOnly()) {
+            codeState.saveStatus = 'error';
+            updateSaveButtonIcon();
+            if (window.HytheraConsole && window.HytheraConsole.addSystemMessage) {
+                window.HytheraConsole.addSystemMessage('Cannot save: plugin is OK/Pub. Unreg first to edit.', 'error');
+            }
+            return;
+        }
+        var socket = (window.HytheraConsole && window.HytheraConsole.state && window.HytheraConsole.state.socket);
+        if (!socket || !socket.connected) {
+            codeState.saveStatus = 'error';
+            updateSaveButtonIcon();
+            if (window.HytheraConsole && window.HytheraConsole.addSystemMessage) {
+                window.HytheraConsole.addSystemMessage('Not connected. Cannot save.', 'error');
+            }
+            return;
+        }
+        codeState.saveStatus = 'dirty';
+        updateSaveButtonIcon();
+        if (!document.body.classList.contains('layout-split')) {
+            var consoleTabBtn = document.querySelector('.panel-tabs button[data-tab="console"]');
+            if (consoleTabBtn) consoleTabBtn.click();
+        }
+        window.dispatchEvent(new CustomEvent('console-command', {
+            detail: {
+                command: 'save',
+                save_payload: {
+                    content: content,
+                    module_path: fileInfo.module_path,
+                    node_id: fileInfo.node_id,
+                    class_name: fileInfo.class_name,
+                    plugin_type: fileInfo.plugin_type || 'node'
+                }
+            }
+        }));
+    }
+
+    function buildSavePayload() {
+        if (!codeState.editor) return { error: 'Editor not ready' };
+        var content = (codeState.editor && codeState.editor.value) || '';
+        if (!content.trim()) return { error: 'No content to save' };
+        var fileInfo = codeState.currentFile;
+        var pluginType = fileInfo && (fileInfo.plugin_type || 'node');
+        var pluginId = fileInfo && (fileInfo.node_id || fileInfo.workflow_id);
+        if (!fileInfo || !fileInfo.module_path || !pluginId || !fileInfo.class_name) {
+            return { error: 'Cannot save: open a plugin first (open node <module_path> or open workflow <module_path>).' };
+        }
+        if (isPluginReadOnly()) {
+            return { error: 'Cannot save: plugin is OK/Pub. Unreg first to edit.' };
+        }
+        var payload = {
+            content: content,
+            module_path: fileInfo.module_path,
+            class_name: fileInfo.class_name,
+            plugin_type: pluginType
+        };
+        if (pluginType === 'workflow') {
+            payload.workflow_id = pluginId;
+        } else {
+            payload.node_id = pluginId;
+        }
+        return { payload: payload };
+    }
+
+    function prepareSaveForSend() {
+        codeState.saveStatus = 'dirty';
+        updateSaveButtonIcon();
+    }
+
+    if (window.HytheraConsole) {
+        window.HytheraConsole.getSavePayload = buildSavePayload;
+        window.HytheraConsole.prepareSaveForSend = prepareSaveForSend;
+    }
+
+    function handleRunCode() {
+        if (!codeState.editor) {
+            console.warn('Editor not ready');
+            return;
+        }
+        
+        const runMode = codeState.runMode;
+        const outputMode = codeState.outputMode;
+        const fileInfo = codeState.currentFile;
+        
+        if (!fileInfo) {
+            console.warn('No file loaded. Open a plugin first.');
+            appendToConsole('error', 'No file loaded. Use "open node <module_path>" to open a plugin first.');
+            return;
+        }
+        
+        // Build output mode flag (--debug or --trace)
+        const outputModeFlag = outputMode === 'trace' ? '--trace' : '--debug';
+        
+        let cmd = '';
+        
+        if (runMode === 'direct') {
+            if (!fileInfo.module_path || !fileInfo.class_name) {
+                console.warn('Missing module_path or class_name for direct mode');
+                appendToConsole('error', 'Cannot run in direct mode: missing module_path or class_name.');
+                return;
+            }
+            cmd = `run node direct ${fileInfo.module_path} ${fileInfo.class_name} --sync ${outputModeFlag}`;
+        } else if (runMode === 'registry') {
+            if (!fileInfo.node_id) {
+                console.warn('Missing node_id for registry mode');
+                appendToConsole('error', 'Cannot run in registry mode: missing node_id. Register the plugin first.');
+                return;
+            }
+            cmd = `run node registry ${fileInfo.node_id} --sync ${outputModeFlag}`;
+        }
+        
+        console.log('Run command:', cmd);
+        
+        if (!document.body.classList.contains('layout-split')) {
+            const consoleTabBtn = document.querySelector('.panel-tabs button[data-tab="console"]');
+            if (consoleTabBtn) {
+                consoleTabBtn.click();
+            }
+        }
+        
+        window.dispatchEvent(new CustomEvent('console-command', { 
+            detail: { command: cmd } 
+        }));
+    }
+    
+    function appendToConsole(type, message) {
+        const output = document.getElementById('console-output');
+        if (!output) return;
+        
+        const entry = document.createElement('div');
+        entry.className = `log-entry level-${type}`;
+        entry.innerHTML = `<span class="log-message">${message}</span>`;
+        output.appendChild(entry);
+        output.scrollTop = output.scrollHeight;
+    }
+    
+    function extractClassName(modulePath) {
+        if (!modulePath) return null;
+        const parts = modulePath.split('.');
+        const moduleName = parts[parts.length - 1];
+        const className = moduleName
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('');
+        if (className.endsWith('Node') || className.endsWith('Workflow')) {
+            return className;
+        }
+        return className + 'Node';
+    }
+    
+    function setRunMode(mode) {
+        codeState.runMode = mode;
+        localStorage.setItem('orkestro-run-mode', mode);
+        
+        document.querySelectorAll('[data-runmode]').forEach(function(opt) {
+            opt.classList.toggle('active', opt.dataset.runmode === mode);
+        });
+        
+        console.log('Run mode set to:', mode);
+    }
+
+    function handleAiAssist() {
+        console.log('AI Code Assistant - Coming soon!');
+    }
+
+    function initCodeEditor() {
+        if (window.__codeEditor) {
+            codeState.editor = window.__codeEditor;
+            initEditorState();
+        } else {
+            window.addEventListener('codemirror-ready', function onReady() {
+                window.removeEventListener('codemirror-ready', onReady);
+                codeState.editor = window.__codeEditor;
+                initEditorState();
+            });
+        }
+    }
+
+    function initEditorState() {
+        if (!codeState.editor) return;
+        
+        codeState.editor.value = defaultTemplate;
+        setEditorSavedState();
+        applyEditorEditability();
+        
+        if (window.__splitCodeEditor) {
+            window.__splitCodeEditor.value = defaultTemplate;
+        }
+    }
+
+    function init() {
+        if (codeDom.btnEditToggle) {
+            codeDom.btnEditToggle.addEventListener('click', handleEditToggle);
+        }
+        if (codeDom.btnSaveFile) {
+            codeDom.btnSaveFile.addEventListener('click', handleSaveFile);
+        }
+        
+        if (codeDom.btnRunCode) {
+            codeDom.btnRunCode.addEventListener('click', handleRunCode);
+        }
+        
+        if (codeDom.btnAiAssist) {
+            codeDom.btnAiAssist.addEventListener('click', handleAiAssist);
+        }
+
+        if (codeDom.splitBtnEdit) {
+            codeDom.splitBtnEdit.addEventListener('click', function() {
+                handleEditToggle();
+                this.classList.toggle('active', codeState.userEditEnabled);
+                this.textContent = codeState.userEditEnabled ? ICONS.LOCK : ICONS.EDIT;
+            });
+        }
+        if (codeDom.splitBtnSave) {
+            codeDom.splitBtnSave.addEventListener('click', handleSaveFile);
+        }
+        
+        if (codeDom.splitBtnRun) {
+            codeDom.splitBtnRun.addEventListener('click', handleRunCode);
+        }
+        
+        if (codeDom.splitBtnAi) {
+            codeDom.splitBtnAi.addEventListener('click', handleAiAssist);
+        }
+        
+        window.addEventListener('code-loaded-from-console', function(e) {
+            if (e.detail) {
+                codeState.currentFile = {
+                    module_path: e.detail.module_path || null,
+                    class_name: extractClassName(e.detail.module_path) || null,
+                    node_id: e.detail.id || null,
+                    file_path: e.detail.file_path || null,
+                    plugin_type: e.detail.action === 'open_workflow' ? 'workflow' : 'node',
+                    registration_status: e.detail.registration_status || null
+                };
+                codeState.saveStatus = 'idle';
+                codeState.editorDirty = false;
+                applyEditSaveVisibility();
+                applyEditorEditability();
+                updateSaveButtonIcon();
+                console.log('File loaded:', codeState.currentFile);
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                handleRunCode();
+            }
+        });
+        
+        window.addEventListener('run-mode-changed', function(e) {
+            if (e.detail && e.detail.mode) {
+                codeState.runMode = e.detail.mode;
+                console.log('Run mode changed to:', codeState.runMode);
+            }
+        });
+
+        window.addEventListener('output-mode-changed', function(e) {
+            if (e.detail && e.detail.mode) {
+                codeState.outputMode = e.detail.mode;
+                console.log('Output mode changed to:', codeState.outputMode);
+            }
+        });
+
+        window.addEventListener('code-editor-change', function() {
+            codeState.editorDirty = true;
+            codeState.saveStatus = 'dirty';
+            updateSaveButtonIcon();
+        });
+        
+        window.addEventListener('split-code-editor-change', function() {
+            codeState.editorDirty = true;
+            codeState.saveStatus = 'dirty';
+            updateSaveButtonIcon();
+        });
+
+        window.addEventListener('code-save-success', function() {
+            setEditorSavedState(true);
+        });
+        window.addEventListener('code-save-error', function() {
+            setEditorSavedState(false);
+        });
+
+        initCodeEditor();
+    }
+    
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+})();

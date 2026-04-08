@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(78, 201, 176, 0.1); border-left: 3px solid var(--term-accent);
+            font-size: 0.9rem; color: var(--term-muted);
+        }
+        .placeholder {
+            padding: 3rem;
+            text-align: center;
+            border: 2px dashed var(--term-border);
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        .placeholder-icon { font-size: 4rem; margin-bottom: 1rem; }
+        @media (max-width: 768px) { body { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Webhooks</h2>
+        <div class="toast-info">Configure HTTP endpoints to trigger workflows externally.</div>
+        <div class="toast-info">Integrate with external services and automation tools.</div>
+        
+        <div class="placeholder">
+            <div class="placeholder-icon">🔗</div>
+            <h3>Coming Soon</h3>
+            <p>Webhook management is under development.</p>
+        </div>
+    </div>
+</body>
+</html>

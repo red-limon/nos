@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block page_title %}RedLimon — Download{% endblock %}
+{% block extra_head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+{% block extra_css %}
+    <style>
+        :root {
+            --rl-bg: #0f0a0a;
+            --rl-card: rgba(30, 12, 12, 0.92);
+            --rl-border: rgba(229, 57, 53, 0.35);
+            --rl-accent: #ff5252;
+            --rl-text: #f5e6e6;
+            --rl-text-muted: #c4a5a5;
+        }
+        .redlimon-page { min-height: 100vh; font-family: 'Outfit', system-ui, sans-serif; background: var(--rl-bg); color: var(--rl-text); padding: 4rem 1.5rem 2rem; }
+        .redlimon-page a { color: var(--rl-accent); text-decoration: none; }
+        .redlimon-page a:hover { text-decoration: underline; }
+        .page-card { max-width: 560px; margin: 0 auto; background: var(--rl-card); border: 1px solid var(--rl-border); border-radius: 12px; padding: 2rem; text-align: center; }
+        .page-card h1 { color: var(--rl-accent); font-size: 1.5rem; margin-bottom: 1rem; }
+        .page-card p { color: var(--rl-text-muted); line-height: 1.7; }
+    </style>
+{% endblock %}
+{% block body %}
+<div class="redlimon-page">
+    <div class="page-card">
+        <h1>Download</h1>
+        <p>Get Orkestro from PyPI and start building your AI-powered workflows.</p>
+        <p style="margin-top: 1rem;"><a href="https://pypi.org/project/nosn/" target="_blank" rel="noopener noreferrer">nos on PyPI →</a></p>
+        <p style="margin-top: 1.5rem;"><a href="{{ url_for('web.redlimon') }}">← Back to RedLimon</a></p>
+    </div>
+</div>
+{% endblock %}

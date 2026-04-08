@@ -1,0 +1,816 @@
+/**
+ * engine_console_v2.html — IDE-style split layout (VS Code / Cursor inspired).
+ * Loaded after console.css; uses body.console-v2.
+ */
+
+/* Menu bar above workbench: stay above splits (explorer/center/chat) so dropdowns are not covered */
+body.console-v2 .console-header {
+    position: relative;
+    z-index: 20000;
+}
+
+body.console-v2 .console-header .menu-dropdown {
+    z-index: 20001;
+}
+
+body.console-v2 .console-header .menu-submenu {
+    z-index: 20002;
+}
+
+body.console-v2 .console-header .menu-submenu .menu-submenu {
+    z-index: 20003;
+}
+
+/* Generic document stage in center top (execution output | Python editor | future types) */
+body.console-v2 #v2-center-document-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* .workspace-pane--execution { display:flex } in console.css beats native [hidden] — force hide when tabbed off */
+body.console-v2 #workspace-pane-execution[hidden],
+body.console-v2 #workspace-pane-python[hidden] {
+    display: none !important;
+}
+
+body.console-v2 .explorer-backdrop {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+body.console-v2 #explorer-offcanvas {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0;
+    transform: none !important;
+    box-shadow: none !important;
+    border-right: 1px solid var(--term-border);
+    flex: 0 0 var(--v2-left-width, 280px);
+    min-width: 160px;
+    max-width: 50vw;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+body.console-v2 #explorer-offcanvas:not(.open) {
+    flex-basis: 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden;
+}
+
+body.console-v2 #explorer-offcanvas.open {
+    flex-basis: var(--v2-left-width, 280px);
+    width: auto !important;
+}
+
+body.console-v2 .v2-left-dock-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: var(--header-bg, #11111b);
+    border-bottom: 1px solid var(--term-border);
+    flex-shrink: 0;
+}
+
+body.console-v2 .v2-left-tab-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+body.console-v2 .v2-toggle-left-dock {
+    flex-shrink: 0;
+}
+
+body.console-v2 .v2-plugins-explorer-refresh {
+    flex-shrink: 0;
+}
+
+body.console-v2 .v2-plugins-explorer-refresh svg {
+    display: block;
+}
+
+body.console-v2 .v2-left-tbtn {
+    flex: 1;
+    min-width: 0;
+    min-height: 36px;
+    padding: 6px 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--log-debug);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+body.console-v2 .v2-left-tbtn__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    opacity: 0.9;
+}
+
+body.console-v2 .v2-left-tbtn__icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+body.console-v2 .v2-left-tbtn:hover {
+    color: var(--term-fg);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.console-v2 .v2-left-tbtn:hover .v2-left-tbtn__icon {
+    opacity: 1;
+}
+
+body.console-v2 .v2-left-tbtn.active {
+    color: var(--log-info);
+    background: rgba(56, 189, 248, 0.1);
+}
+
+body.console-v2 .v2-left-tbtn.active .v2-left-tbtn__icon {
+    color: var(--log-info);
+    opacity: 1;
+}
+
+body.console-v2 .v2-left-pane {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.console-v2 .v2-left-pane.active {
+    display: flex;
+}
+
+body.console-v2 .v2-left-pane--project,
+body.console-v2 .v2-left-pane--plugins {
+    min-height: 0;
+}
+
+body.console-v2 .explorer-view-tabs--legacy {
+    display: none !important;
+}
+
+body.console-v2 .v2-apps-placeholder {
+    padding: 12px;
+    font-size: 12px;
+    color: var(--log-debug);
+    line-height: 1.5;
+}
+
+body.console-v2 .v2-apps-placeholder a {
+    color: var(--log-info);
+}
+
+/* Workbench: 3 columns */
+body.console-v2 .console-container {
+    height: 100vh;
+}
+
+body.console-v2 .console-v2-workbench {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.console-v2 .console-body-main > .console-v2-workbench {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+body.console-v2 .console-v2-center {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+body.console-v2 .v2-center-top {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 var(--v2-center-top-fr, 55%);
+    min-height: 120px;
+    overflow: hidden;
+}
+
+/* Workspace chrome: horizontal document tabs + optional rail (no top toolbar in v2) */
+body.console-v2 .v2-workspace-chrome {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--header-bg, rgba(0, 0, 0, 0.25));
+}
+
+/* Document tab strip: force horizontal row (same idea as .v2-bottom-tabbar .panel-tabs--bottom) */
+body.console-v2 #workspace-doc-bar.workspace-doc-bar,
+body.console-v2 .workspace-doc-bar.workspace-doc-bar--v2 {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-width: 0;
+    width: 100%;
+}
+
+body.console-v2 .workspace-doc-bar-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+body.console-v2 .workspace-doc-bar-inner .workspace-doc-tab {
+    flex: 0 0 auto;
+}
+
+body.console-v2 .execution-doc-format-badge[hidden] {
+    display: none !important;
+}
+
+/* .split-panel-header { display:flex } in console.css overrides native [hidden] */
+body.console-v2 #workspace-center-header[hidden] {
+    display: none !important;
+    padding: 0 !important;
+    border: none !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+body.console-v2 .workspace-empty-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    color: var(--log-debug, #9399b2);
+    user-select: none;
+}
+
+body.console-v2 .workspace-empty-brand__ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(137, 180, 250, 0.08);
+    border: 1px solid rgba(137, 180, 250, 0.18);
+    color: var(--fx-accent, #89b4fa);
+}
+
+body.console-v2 .workspace-empty-brand__ico svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+body.console-v2 .workspace-empty-brand__label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--term-comment, #6c7086);
+}
+
+body.console-v2 .v2-center-bottom {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 var(--v2-center-bottom-fr, 45%);
+    min-height: 100px;
+    border-top: 1px solid var(--term-border);
+    overflow: hidden;
+}
+
+/* Bottom split: one row — tabs (horizontal) + collapse toggle on the right */
+body.console-v2 .v2-bottom-tabbar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    flex-shrink: 0;
+    min-height: 36px;
+    background: var(--header-bg, rgba(0, 0, 0, 0.25));
+    border-bottom: 1px solid var(--term-border);
+}
+
+body.console-v2 .v2-bottom-tabbar .panel-tabs--bottom {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+    border-bottom: none;
+    padding: 0 4px 0 8px;
+}
+
+body.console-v2 .v2-bottom-tabbar .panel-tabs--bottom button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+body.console-v2 .v2-bottom-tabbar__toggle {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px 0 4px;
+    border-left: 1px solid var(--term-border);
+    background: var(--header-bg, rgba(0, 0, 0, 0.2));
+}
+
+body.console-v2 .v2-toggle-bottom-btn {
+    width: 30px;
+    height: 28px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+body.console-v2 .v2-bottom-panels {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+body.console-v2 .console-v2-chat {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--v2-right-width, 340px);
+    min-width: 220px;
+    max-width: 55vw;
+    border-left: 1px solid var(--term-border);
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.console-v2 .panel-tabs--chat {
+    flex-shrink: 0;
+}
+
+/* Resizer handles */
+body.console-v2 .v2-resizer {
+    flex: 0 0 5px;
+    background: var(--term-border);
+    cursor: col-resize;
+    z-index: 2;
+}
+
+body.console-v2 .v2-resizer--right {
+    cursor: col-resize;
+}
+
+body.console-v2 .v2-resizer:hover,
+body.console-v2 .v2-resizer.dragging {
+    background: var(--log-info);
+}
+
+body.console-v2 .v2-resizer--middle {
+    cursor: row-resize;
+    flex: 0 0 5px;
+    width: 100%;
+}
+
+/* When left/right panels are collapsed, toggles inside them disappear — show edge rails to restore */
+body.console-v2 .v2-expand-rail {
+    display: none;
+    flex: 0 0 22px;
+    min-height: 0;
+    align-self: stretch;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: var(--header-bg, #11111b);
+    color: var(--log-debug);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    z-index: 3;
+}
+
+body.console-v2 .v2-expand-rail:hover {
+    color: var(--term-fg);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.console-v2 .v2-expand-rail--left {
+    border-right: 1px solid var(--term-border);
+}
+
+body.console-v2 .v2-expand-rail--right {
+    border-left: 1px solid var(--term-border);
+}
+
+body.console-v2.console-v2--left-collapsed .v2-expand-rail--left {
+    display: flex;
+}
+
+body.console-v2.console-v2--right-collapsed .v2-expand-rail--right {
+    display: flex;
+}
+
+body.console-v2 .v2-center-stack {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* v2: concurrent regions — workspace + chat always flex; bottom pair toggles */
+body.console-v2 #tab-workspace.panel-tab {
+    display: flex !important;
+    flex: 1;
+    min-height: 0;
+}
+
+body.console-v2 #tab-chat-model.panel-tab {
+    display: flex !important;
+    flex: 1;
+    min-height: 0;
+}
+
+body.console-v2 #tab-console.panel-tab:not(.active),
+body.console-v2 #tab-runtime.panel-tab:not(.active),
+body.console-v2 #tab-output.panel-tab:not(.active),
+body.console-v2 #tab-metrics.panel-tab:not(.active) {
+    display: none !important;
+}
+
+body.console-v2 #tab-console.panel-tab.active,
+body.console-v2 #tab-runtime.panel-tab.active,
+body.console-v2 #tab-output.panel-tab.active,
+body.console-v2 #tab-metrics.panel-tab.active {
+    display: flex !important;
+    flex: 1;
+    min-height: 0;
+}
+
+body.console-v2 .panel-tabs--bottom .tab-icon--json {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+body.console-v2 .v2-output-json-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    background: var(--term-bg, #0c0f14);
+}
+
+body.console-v2 .v2-output-json-panel__head {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--term-border, #1e2430);
+    background: var(--header-bg, rgba(0, 0, 0, 0.2));
+}
+
+body.console-v2 .v2-output-json-panel__title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--term-comment, #9399b2);
+}
+
+body.console-v2 .v2-output-json-panel__subtitle {
+    font-size: 10px;
+    color: var(--log-debug, #6c7086);
+}
+
+/* Expandable JSON tree (same classes as terminal cmd-output--json-tree) */
+body.console-v2 .v2-output-json-tree {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 6px 10px 10px;
+    text-align: left;
+}
+
+body.console-v2 .v2-output-json-tree .v2-json-tree-root.cmd-output--json-tree {
+    padding: 0;
+    margin: 0;
+}
+
+body.console-v2 #tab-history.panel-tab {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    width: min(520px, 90vw);
+    height: min(60vh, 480px);
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--term-border);
+    background: var(--term-bg);
+}
+
+body.console-v2 #tab-history.panel-tab:not(.active) {
+    display: none !important;
+}
+
+body.console-v2 #tab-history.panel-tab.active {
+    display: flex !important;
+}
+
+body.console-v2 .v2-runtime-placeholder {
+    padding: 16px;
+    font-size: 12px;
+    color: var(--log-debug);
+    line-height: 1.55;
+}
+
+body.console-v2 .v2-runtime-title {
+    font-weight: 600;
+    color: var(--term-fg);
+    margin-bottom: 8px;
+}
+
+body.console-v2 .v2-panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 2px 4px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--term-border);
+    flex-shrink: 0;
+}
+
+body.console-v2 .v2-icon-btn {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--log-debug);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+body.console-v2 .v2-icon-btn:hover {
+    color: var(--term-fg);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.console-v2.console-v2--left-collapsed #explorer-offcanvas {
+    flex-basis: 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    border: none !important;
+}
+
+body.console-v2.console-v2--right-collapsed .console-v2-chat {
+    flex-basis: 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    border: none !important;
+    overflow: hidden;
+}
+
+/* Collapsed: keep tab bar + toggle visible; hide only panel content */
+body.console-v2.console-v2--center-bottom-collapsed .v2-bottom-panels {
+    display: none !important;
+}
+
+body.console-v2.console-v2--center-bottom-collapsed .v2-center-bottom {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow: visible;
+}
+
+body.console-v2.console-v2--center-bottom-collapsed .v2-resizer--middle {
+    display: none;
+}
+
+/* ── Metrics tab (worker CPU / RAM, Chart.js) ───────────────────────────── */
+body.console-v2 #tab-metrics.panel-tab {
+    flex-direction: column;
+    min-height: 0;
+    background: var(--term-bg, #0c0f14);
+}
+
+body.console-v2 .v2-metrics-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    padding: 0;
+}
+
+body.console-v2 .v2-metrics-panel__head {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--term-border, #1e2430);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+}
+
+body.console-v2 .v2-metrics-panel__title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--term-fg, #e2e8f0);
+}
+
+body.console-v2 .v2-metrics-panel__subtitle {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--log-debug, #6c7086);
+}
+
+body.console-v2 .v2-metrics-panel__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    font-size: 11px;
+}
+
+body.console-v2 .v2-metrics-kpi {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--term-fg, #cdd6f4);
+}
+
+body.console-v2 .v2-metrics-kpi--muted {
+    color: var(--log-debug, #6c7086);
+}
+
+body.console-v2 .v2-metrics-kpi__label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--log-debug, #6c7086);
+}
+
+body.console-v2 .v2-metrics-kpi code {
+    font-size: 10px;
+    max-width: min(200px, 28vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--term-border, #1e2430);
+}
+
+body.console-v2 .v2-metrics-clear-btn {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--log-info, #89b4fa);
+    background: rgba(137, 180, 250, 0.1);
+    border: 1px solid rgba(137, 180, 250, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+body.console-v2 .v2-metrics-clear-btn:hover {
+    background: rgba(137, 180, 250, 0.18);
+}
+
+body.console-v2 .v2-metrics-hint {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 6px 10px 4px;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--log-debug, #6c7086);
+}
+
+body.console-v2 .v2-metrics-hint code {
+    font-size: 10px;
+    color: var(--log-info, #89b4fa);
+}
+
+body.console-v2 .v2-metrics-charts {
+    flex: 1;
+    min-height: 140px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 4px 8px 10px;
+    box-sizing: border-box;
+}
+
+@media (min-width: 720px) {
+    body.console-v2 .v2-metrics-charts {
+        grid-template-columns: 1fr 1fr;
+        min-height: 180px;
+    }
+}
+
+body.console-v2 .v2-metrics-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--term-border, #1e2430);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+body.console-v2 .v2-metrics-card__label {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--term-comment, #9399b2);
+    border-bottom: 1px solid var(--term-border, #1e2430);
+}
+
+body.console-v2 .v2-metrics-card__canvas-wrap {
+    flex: 1;
+    min-height: 120px;
+    position: relative;
+    padding: 4px 6px 8px;
+}
+
+body.console-v2 .v2-metrics-card__canvas-wrap canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 480px) {
+    body.console-v2 .v2-metrics-panel__meta {
+        width: 100%;
+    }
+    body.console-v2 .v2-metrics-clear-btn {
+        margin-left: 0;
+    }
+}

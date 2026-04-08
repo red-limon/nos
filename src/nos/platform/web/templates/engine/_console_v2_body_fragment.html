@@ -1,0 +1,431 @@
+    <div class="explorer-backdrop" id="explorer-backdrop"></div>
+    <div class="console-container">
+        <!-- IDE Menu Bar (same as engine_console.html) -->
+        <header class="console-header">
+            <!-- Left Section: Logo + Menu -->
+            <div class="header-left">
+                <!-- Logo: nOS + Terminal icon -->
+                <div class="header-logo">
+                    <span class="header-logo-text">nOS</span>
+                    <svg class="logo-icon logo-icon-terminal" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true">
+                        <rect x="2" y="4" width="20" height="16" rx="1"/>
+                        <path d="M6 9h12M6 13h8"/>
+                    </svg>
+                </div>
+                <nav class="menu-bar">
+                <!-- Console Menu -->
+                <div class="menu-item" data-menu="console">
+                    <button class="menu-trigger" type="button">Console</button>
+                    <div class="menu-dropdown">
+                        <button class="menu-option" id="menu-explorer" type="button">
+                            <span>Explorer</span>
+                            <span class="shortcut">Ctrl+E</span>
+                            <span class="toggle-check">✓</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-new-window" type="button">
+                            <span>New Window</span>
+                            <span class="shortcut">Ctrl+Shift+N</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-open-workspace" type="button">
+                            <span>Open Workspace</span>
+                        </button>
+                        <button class="menu-option" id="menu-open-recent" type="button">
+                            <span>Open Recent</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-save" type="button">
+                            <span>Save</span>
+                        </button>
+                        <button class="menu-option" id="menu-save-as" type="button">
+                            <span>Save as...</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option active checked" id="menu-autosave" type="button">
+                            <span>Autosave</span>
+                            <span class="toggle-check">✓</span>
+                        </button>
+                        <div class="menu-option has-submenu">
+                            <span>Preferences</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <div class="menu-option has-submenu">
+                                    <span>Themes</span>
+                                    <span class="arrow">▶</span>
+                                    <div class="menu-submenu">
+                                        <button class="menu-option active" data-theme="nos" type="button">
+                                            <span>Dark</span>
+                                            <span class="toggle-indicator"></span>
+                                        </button>
+                                        <button class="menu-option" data-theme="light" type="button">
+                                            <span>Light</span>
+                                            <span class="toggle-indicator"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-connect" type="button">
+                            <span>Connect</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-close" type="button">
+                            <span>Exit</span>
+                            <span class="shortcut">Ctrl+W</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- View Menu -->
+                <div class="menu-item" data-menu="view">
+                    <button class="menu-trigger" type="button">View</button>
+                    <div class="menu-dropdown">
+                        <div class="menu-option has-submenu">
+                            <span>Layout</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <button class="menu-option" id="menu-layout-horizontal" type="button">
+                                    <span>Horizontal</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" id="menu-layout-vertical" type="button">
+                                    <span>Vertical</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Edit Menu -->
+                <div class="menu-item" data-menu="preferences">
+                    <button class="menu-trigger" type="button">Edit</button>
+                    <div class="menu-dropdown">
+                        <button class="menu-option" id="menu-edit-select-all" type="button">
+                            <span>Select All</span>
+                            <span class="shortcut">Ctrl+A</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-edit-expand-all" type="button">
+                            <span>Expand All</span>
+                        </button>
+                        <button class="menu-option" id="menu-edit-collapse-all" type="button">
+                            <span>Collapse All</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="menu-item" data-menu="history">
+                    <button class="menu-trigger" type="button" id="menu-history" title="Open Execution History">History</button>
+                </div>
+
+                <div class="menu-item" data-menu="help">
+                    <button class="menu-trigger" type="button" id="menu-help" title="Run help in terminal">Help</button>
+                </div>
+                </nav>
+            </div>
+            
+            <div class="header-status">
+                <div class="status-connection">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Disconnected</span>
+                    <span id="status-session-id" class="status-session-id" aria-hidden="true"></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="console-body-main console-v2-workbench">
+            <!-- Split 1: Explorer dock (Project | Workspace | Apps) -->
+            <aside class="explorer-offcanvas open" id="explorer-offcanvas">
+                <div class="explorer-header">
+                    <span class="explorer-title">Explorer</span>
+                    <button class="explorer-close" id="explorer-close" title="Close">&times;</button>
+                    <button type="button" class="v2-icon-btn" id="v2-toggle-left" title="Collapse / expand left panel">◀</button>
+                </div>
+                <div class="explorer-content">
+                    <nav class="v2-left-tab-bar" role="tablist" aria-label="Explorer areas">
+                        <button type="button" class="v2-left-tbtn active" data-v2-left-tab="project">Project explorer</button>
+                        <button type="button" class="v2-left-tbtn" data-v2-left-tab="workspace">Workspace</button>
+                        <button type="button" class="v2-left-tbtn" data-v2-left-tab="apps">Apps</button>
+                    </nav>
+                    <div class="v2-left-pane v2-left-pane--project active" data-v2-left-pane="project">
+                        <div class="explorer-panel" id="explorer-files-panel" style="flex: 1;">
+                            <div class="explorer-sidebar-head explorer-view-tabs--legacy" aria-hidden="true">
+                                <nav class="explorer-view-tabs" role="tablist" aria-label="Explorer source">
+                                    <button type="button" role="tab" class="explorer-view-tab active" data-explorer-view="project" id="explorer-tab-project" aria-selected="true" title="Plugin packages (project layout)">Project</button>
+                                    <button type="button" role="tab" class="explorer-view-tab" data-explorer-view="workspace" id="explorer-tab-workspace" aria-selected="false" title="Saved sessions">Workspace</button>
+                                </nav>
+                            </div>
+                            <div class="explorer-panel-content explorer-panel-content--tabs">
+                                <div class="explorer-view-pane active" id="explorer-view-project" role="tabpanel" aria-labelledby="explorer-tab-project">
+                                    <p class="explorer-project-hint" id="explorer-project-hint" hidden></p>
+                                    <div class="file-tree file-tree--project" id="file-tree">
+                                        <div class="tree-muted">Open Explorer to load the project tree.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="explorer-resizer" id="explorer-resizer"></div>
+                        <div class="explorer-panel" id="explorer-outline-panel" style="flex: 1;">
+                            <div class="explorer-panel-header" data-panel="outline">
+                                <span class="collapse-icon">▼</span>
+                                <span>Outline</span>
+                            </div>
+                            <div class="explorer-panel-content">
+                                <div class="outline-tree" id="outline-tree">
+                                    <div class="outline-empty">Open a file to see its outline</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-left-pane" data-v2-left-pane="workspace" hidden>
+                        <div class="explorer-view-pane active" id="explorer-view-workspace" role="tabpanel" aria-labelledby="explorer-tab-workspace">
+                            <p class="explorer-workspace-hint" id="explorer-workspace-hint"></p>
+                            <div class="file-tree file-tree--drive explorer-drive-tree" id="explorer-workspace-tree">
+                                <div class="tree-muted">Open this tab to list <code>.nos</code> sessions. Click a <code>.nos</code> file to restore Terminal + Workspace.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-left-pane" data-v2-left-pane="apps" hidden>
+                        <div class="v2-apps-placeholder">
+                            <p><strong>Apps</strong></p>
+                            <p>Shortcuts to workflows and app entry points will appear here.</p>
+                            <p><a href="{{ url_for('web.app_page') }}" target="_blank" rel="noopener noreferrer">Open Apps</a></p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="v2-resizer v2-resizer--left" id="v2-resizer-left" title="Resize"></div>
+
+            <!-- Split 2: Center (Workspace top | Terminal + Runtime bottom) -->
+            <div class="console-v2-center v2-center-stack">
+                <div class="v2-center-top">
+                    <div class="v2-workspace-chrome panel-tabs-workspace-group" id="panel-tabs-workspace-group">
+                        <div class="v2-workspace-chrome-toolbar">
+                            <span class="execution-doc-format-badge" id="workspace-execution-format-badge" title="Output format">—</span>
+                            <div class="v2-workspace-chrome-actions">
+                                <button type="button" class="v2-icon-btn" id="workspace-rail-toggle" aria-label="Toggle open documents" aria-expanded="false" title="Open documents">▶</button>
+                                <button type="button" class="v2-icon-btn" id="v2-toggle-bottom" title="Collapse / expand Terminal / Runtime">▼</button>
+                                <button type="button" class="execution-doc-icon-btn" id="workspace-json-toggle-btn" title="Show / hide full NodeExecutionResult or WorkflowExecutionResult (JSON)" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M8 9l3 3-3 3"/><path d="M14 18h4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+                                </button>
+                                <button type="button" class="execution-doc-icon-btn" id="workspace-execution-copy-btn" title="Copy document">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                                <button type="button" class="execution-doc-icon-btn" id="workspace-execution-save-btn" title="Save as file">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="workspace-doc-bar" class="workspace-doc-bar workspace-doc-bar--v2" role="tablist" aria-label="Open documents" hidden>
+                            <div class="workspace-doc-bar-inner" id="workspace-doc-bar-inner"></div>
+                        </div>
+                        <ul class="workspace-rail-doc-list" id="workspace-rail-doc-list" role="list" aria-label="Open workspace documents"></ul>
+                    </div>
+                    <!-- Tab: Workspace -->
+                    <div id="tab-workspace" class="panel-tab active" data-section="workspace">
+                        <div id="workspace-shell" class="workspace-shell workspace-shell--document-stage" data-workspace-kind="none">
+                            <div class="split-panel-header workspace-header">
+                                <span class="panel-title" id="workspace-panel-title" title="">
+                                    <span id="workspace-title-icon-slot" class="workspace-title-icon-slot" aria-hidden="true"><span class="workspace-title-icon-default">⟨⟩</span></span>
+                                    <span id="workspace-title-text">Workspace</span>
+                                </span>
+                                <div class="split-toolbar workspace-toolbar workspace-toolbar--python workspace-python-host" id="workspace-toolbar-python" hidden aria-hidden="true" style="display: none !important;">
+                                    <span class="code-cursor-pos" id="code-cursor-pos"></span>
+                                    <button class="toolbar-btn" id="btn-edit-toggle" title="Enable editing">✎</button>
+                                    <button class="toolbar-btn saved" id="btn-save-file" title="Saved">✓</button>
+                                    <button class="toolbar-btn run" id="btn-run-code" title="Run code (F5)">
+                                        <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                                    </button>
+                                    <button class="toolbar-btn ai" id="btn-ai-assist" title="AI Code Assistant">
+                                        <svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.5"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="split-panel-content workspace-content">
+                                <div id="workspace-pane-python" class="workspace-pane workspace-pane--python workspace-python-host" data-workspace-renderer="python" hidden aria-hidden="true" style="display: none !important;">
+                                    <div class="code-editor-wrap">
+                                        <div id="code-editor" data-readonly="true"></div>
+                                    </div>
+                                </div>
+                                <div id="workspace-pane-execution" class="workspace-pane workspace-pane--execution" hidden>
+                                    <div class="execution-doc-shell execution-doc-shell--workspace">
+                                        <div class="execution-doc-layout" id="workspace-execution-doc-layout">
+                                            <div class="execution-doc-main">
+                                                <div class="execution-doc-sheet">
+                                                    <textarea id="workspace-execution-body" class="execution-doc-editor" spellcheck="false" placeholder="Execution result"></textarea>
+                                                    <div id="workspace-execution-html-preview" class="execution-result-html-preview" hidden></div>
+                                                </div>
+                                            </div>
+                                            <aside class="workspace-json-inspector" id="workspace-json-inspector" aria-hidden="true">
+                                                <div class="workspace-json-inspector__head">
+                                                    <span class="workspace-json-inspector__title">Full result (JSON)</span>
+                                                    <button type="button" class="workspace-json-inspector__close" id="workspace-json-inspector-close" title="Close panel" aria-label="Close JSON panel">&times;</button>
+                                                </div>
+                                                <textarea id="workspace-json-inspector-body" class="workspace-json-inspector__body" readonly spellcheck="false" title="NodeExecutionResult or WorkflowExecutionResult"></textarea>
+                                            </aside>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="workspace-empty-overlay" class="workspace-empty-overlay workspace-empty-overlay--document" aria-hidden="true">
+                                    <div class="workspace-empty-hint workspace-empty-hint--document">
+                                        <p><strong>Workspace</strong> — execution result documents.</p>
+                                        <p class="workspace-empty-hint__sub">Each run opens a tab with the renderable output. Use the <strong>{ }</strong> toggle on a tab for the full <code>NodeExecutionResult</code> / <code>WorkflowExecutionResult</code> JSON. (Plugin code editing in this panel is temporarily disabled.)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="v2-resizer v2-resizer--middle" id="v2-resizer-middle" title="Resize vertical split"></div>
+
+                <div class="v2-center-bottom">
+                    <nav class="panel-tabs panel-tabs--bottom">
+                        <button type="button" data-tab="console" class="active">
+                            <span class="tab-icon">&gt;_</span>
+                            <span>Terminal</span>
+                        </button>
+                        <button type="button" data-tab="runtime">
+                            <span class="tab-icon">◆</span>
+                            <span>Runtime</span>
+                        </button>
+                    </nav>
+                    <div class="v2-bottom-panels">
+                        <div id="tab-console" class="panel-tab panel-tab--terminal-group active" data-section="terminal">
+                            <main class="console-output" id="console-output">
+                                <div class="console-empty" id="console-empty">
+                                    <div class="console-empty-icon">&gt;_</div>
+                                    <div>Waiting for events...</div>
+                                    <div style="margin-top: 8px; font-size: 11px;">Connect to Socket.IO to see real-time logs</div>
+                                </div>
+                            </main>
+                            <div id="output-panel" class="output-panel output-panel--legacy" hidden aria-hidden="true"></div>
+                            <div class="output-empty" id="output-empty" hidden></div>
+                        </div>
+                        <div id="tab-runtime" class="panel-tab" data-section="runtime">
+                            <div class="v2-runtime-placeholder">
+                                <p class="v2-runtime-title">Runtime</p>
+                                <p>Engine process, plugin lifecycle, and run diagnostics will surface here in a future revision.</p>
+                                <p class="v2-runtime-hint">Live command output and execution events remain in the <strong>Terminal</strong> tab above.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="v2-resizer v2-resizer--left" id="v2-resizer-right" title="Resize"></div>
+
+            <!-- Split 3: Chat -->
+            <aside class="console-v2-chat">
+                <div class="v2-panel-toolbar">
+                    <span style="flex:1;font-size:11px;opacity:0.75;padding-left:4px;">Assistant</span>
+                    <button type="button" class="v2-icon-btn" id="v2-toggle-right" title="Collapse / expand chat">▶</button>
+                </div>
+                <nav class="panel-tabs panel-tabs--chat">
+                    <button type="button" data-tab="chat-model" class="active">
+                        <span class="tab-icon tab-icon-svg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg></span>
+                        <span>Chat</span>
+                    </button>
+                </nav>
+                <div id="tab-chat-model" class="panel-tab active" data-section="chat-model">
+                    <div class="chat-panel">
+                        <div class="chat-toolbar">
+                            <div class="chat-toolbar-left">
+                                <button class="toolbar-btn chat-config-toggle" id="chat-config-toggle" title="Show configuration" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h1M3 12H2M12 20v1M12 3V2"/></svg>
+                                </button>
+                                <span class="chat-model-badge" id="chat-model-badge">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
+                                    <span id="chat-model-label">gpt-4o</span>
+                                </span>
+                            </div>
+                            <div class="chat-toolbar-right">
+                                <button class="toolbar-btn" id="chat-copy-btn" title="Copy last response">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                                <button class="toolbar-btn" id="chat-clear-btn" title="Clear history">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chat-config-panel" id="chat-config-panel" aria-hidden="true">
+                            <div class="chat-config-inner">
+                                <div class="chat-config-field">
+                                    <label for="chat-config-model">Model</label>
+                                    <select id="chat-config-model">
+                                        <option value="gpt-4o">gpt-4o</option>
+                                        <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                        <option value="gpt-4-turbo">gpt-4-turbo</option>
+                                        <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                                        <option value="claude-3-5-sonnet">claude-3-5-sonnet</option>
+                                        <option value="claude-3-haiku">claude-3-haiku</option>
+                                        <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                    </select>
+                                </div>
+                                <div class="chat-config-field">
+                                    <label for="chat-config-temperature">Temperature <span id="chat-temp-display">0.7</span></label>
+                                    <input type="range" id="chat-config-temperature" min="0" max="2" step="0.1" value="0.7">
+                                </div>
+                                <div class="chat-config-field">
+                                    <label for="chat-config-max-tokens">Max tokens</label>
+                                    <input type="number" id="chat-config-max-tokens" min="64" max="8192" step="64" value="1024" style="width:90px;">
+                                </div>
+                                <div class="chat-config-field chat-config-field--full">
+                                    <label for="chat-config-system">System prompt</label>
+                                    <textarea id="chat-config-system" placeholder="You are a helpful assistant..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-history" id="chat-history">
+                            <div class="chat-history-empty" id="chat-history-empty">
+                                <div class="chat-history-empty-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48" opacity="0.35"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <div>No messages yet</div>
+                                <div style="font-size:11px; margin-top:4px; opacity:0.5;">Configure the model above and start a conversation</div>
+                            </div>
+                        </div>
+                        <div class="chat-composer" id="chat-composer">
+                            <div class="chat-attachments" id="chat-attachments"></div>
+                            <div class="chat-composer-row">
+                                <div class="chat-composer-actions-left">
+                                    <button class="chat-action-btn" id="chat-attach-file" title="Attach file">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    </button>
+                                    <button class="chat-action-btn" id="chat-attach-image" title="Attach image">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    </button>
+                                    <button class="chat-action-btn" id="chat-attach-url" title="Add URL context">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    </button>
+                                </div>
+                                <textarea class="chat-input" id="chat-input" placeholder="Type a message… (Enter to send, Shift+Enter for new line)" rows="1"></textarea>
+                                <button class="chat-send-btn" id="chat-send-btn" title="Send (Enter)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </button>
+                            </div>
+                            <input type="file" id="chat-file-input" hidden multiple>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+        <!-- end .console-body-main -->
+
+        <div id="tab-history" class="panel-tab" data-section="history" hidden>
+            <div class="exec-history-toolbar">
+                <span class="exec-history-toolbar__title">Execution History</span>
+                <button class="exec-history-toolbar__btn" id="exec-history-refresh" title="Refresh">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Refresh
+                </button>
+            </div>
+            <div id="exec-history-root"></div>
+        </div>
+
+    </div>

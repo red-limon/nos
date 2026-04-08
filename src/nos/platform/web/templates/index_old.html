@@ -1,0 +1,669 @@
+{% extends "base.html" %}
+{% block extra_head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+{% block extra_css %}
+    <style>
+        :root {
+            --fx-bg-dark: #0a0e17;
+            --fx-bg-card: rgba(15, 23, 42, 0.85);
+            --fx-border: rgba(0, 212, 255, 0.25);
+            --fx-accent: #00d4ff;
+            --fx-accent-dim: rgba(0, 212, 255, 0.7);
+            --fx-text: #e2e8f0;
+            --fx-text-muted: #94a3b8;
+            --fx-glow: 0 0 20px rgba(0, 212, 255, 0.15);
+            --fx-glow-strong: 0 0 30px rgba(0, 212, 255, 0.25);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .landing-page {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+            background: var(--fx-bg-dark);
+            transition: background 0.5s ease, background-image 0.5s ease;
+            background-image:
+                linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 212, 255, 0.12) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Cdefs%3E%3Cpattern id='n' width='72' height='72' patternUnits='userSpaceOnUse'%3E%3Cline x1='36' y1='0' x2='36' y2='72' stroke='rgba(0,212,255,0.25)' stroke-width='0.5'/%3E%3Cline x1='0' y1='36' x2='72' y2='36' stroke='rgba(0,212,255,0.25)' stroke-width='0.5'/%3E%3Cline x1='0' y1='0' x2='72' y2='72' stroke='rgba(0,212,255,0.1)' stroke-width='0.3'/%3E%3Cline x1='72' y1='0' x2='0' y2='72' stroke='rgba(0,212,255,0.1)' stroke-width='0.3'/%3E%3Ccircle cx='36' cy='36' r='1.2' fill='rgba(0,212,255,0.35)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23n)'/%3E%3C/svg%3E");
+            background-size: auto, auto, 72px 72px;
+            background-position: 0 0, 0 0, 0 0;
+            background-repeat: repeat, repeat, repeat;
+            color: var(--fx-text);
+        }
+        .page-wrapper {
+            display: flex; flex-direction: column; gap: 2rem;
+            width: 100%; max-width: 560px; padding: 0 1rem;
+        }
+        @media (min-width: 768px) {
+            .page-wrapper { max-width: 640px; }
+        }
+        @media (max-width: 480px) {
+            .page-wrapper { padding: 0 0.75rem; gap: 1.5rem; }
+        }
+        /* Hero section */
+        .hero-section {
+            position: relative;
+            background: var(--fx-bg-card);
+            border: 1px solid var(--fx-border);
+            padding: 1.25rem 1.5rem; text-align: center;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--fx-glow);
+            transition: box-shadow 0.3s ease;
+        }
+        .body-github {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: inline-flex;
+            align-items: center;
+            color: var(--fx-accent);
+            opacity: 0.8;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .body-github:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .hero-section:hover {
+            box-shadow: var(--fx-glow-strong);
+        }
+        .hero-title-row {
+            display: flex; align-items: center; justify-content: center; gap: 1.25rem;
+            width: 100%;
+            padding: 0.75rem 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.75rem; font-weight: 700; letter-spacing: 0.15em;
+            color: var(--fx-accent);
+            text-shadow: 0 0 35px rgba(0, 212, 255, 0.4);
+        }
+        .logo-flying-net {
+            perspective: 200px;
+        }
+        .logo-flying-net .logo-lattice {
+            transform-origin: 50% 50%;
+        }
+        .logo-flying-net .grid-sheet {
+            transform-origin: 24px 24px;
+            animation: sheet-float 5s ease-in-out infinite;
+        }
+        @keyframes sheet-float {
+            0%, 100% { transform: rotate(-28deg) rotateX(3deg); }
+            50% { transform: rotate(-26deg) rotateX(-2deg); }
+        }
+        .logo-lattice {
+            display: block;
+            width: 7rem; height: 7rem;
+            min-width: 7rem; min-height: 7rem;
+            filter: drop-shadow(0 0 25px rgba(0, 212, 255, 0.7));
+            flex-shrink: 0;
+        }
+        .logo-lattice line {
+            stroke: var(--fx-accent);
+            stroke-width: 1.2;
+            fill: none;
+        }
+        .logo-lattice circle {
+            fill: var(--fx-accent);
+            stroke: none;
+        }
+        /* Animated lattice logo (in movimento) */
+        .logo-lattice .line-flow {
+            stroke: var(--fx-accent);
+            stroke-width: 1.2;
+            stroke-dasharray: 4 6;
+            fill: none;
+            animation: lattice-flow 1.2s linear infinite;
+        }
+        .logo-lattice .node-pulse {
+            fill: var(--fx-accent);
+            stroke: none;
+            opacity: 0.3;
+            animation: node-glow 2s ease-in-out infinite;
+        }
+        /* Random flow effect - each node has unique timing */
+        .logo-lattice .node-1 { animation-delay: 0s; animation-duration: 1.8s; }
+        .logo-lattice .node-2 { animation-delay: 0.7s; animation-duration: 2.1s; }
+        .logo-lattice .node-3 { animation-delay: 0.3s; animation-duration: 1.6s; }
+        .logo-lattice .node-4 { animation-delay: 1.1s; animation-duration: 2.3s; }
+        .logo-lattice .node-5 { animation-delay: 0.5s; animation-duration: 1.9s; }
+        .logo-lattice .node-6 { animation-delay: 1.4s; animation-duration: 2.0s; }
+        .logo-lattice .node-7 { animation-delay: 0.2s; animation-duration: 2.2s; }
+        .logo-lattice .node-8 { animation-delay: 0.9s; animation-duration: 1.7s; }
+        .logo-lattice .node-9 { animation-delay: 1.6s; animation-duration: 2.4s; }
+        /* 3D cube wrapper - subtle perspective rotation */
+        .logo-cube-wrapper {
+            perspective: 200px;
+            perspective-origin: 50% 50%;
+        }
+        .logo-cube-wrapper svg {
+            transform-origin: center center;
+            animation: cube-rotate 8s ease-in-out infinite;
+        }
+        @keyframes cube-rotate {
+            0%, 100% { transform: rotateY(-15deg) rotateX(5deg); }
+            25% { transform: rotateY(15deg) rotateX(5deg); }
+            50% { transform: rotateY(15deg) rotateX(-5deg); }
+            75% { transform: rotateY(-15deg) rotateX(-5deg); }
+        }
+        @keyframes lattice-flow {
+            to { stroke-dashoffset: -20; }
+        }
+        @keyframes node-glow {
+            0%, 100% { 
+                opacity: 0.3; 
+                fill: var(--fx-accent);
+                filter: none;
+            }
+            50% { 
+                opacity: 1; 
+                fill: #ffffff;
+                filter: drop-shadow(0 0 6px var(--fx-accent));
+            }
+        }
+        /* Network/rete: link glow - links between nodes illuminate */
+        .logo-lattice .line-glow {
+            animation: lattice-flow 1.2s linear infinite, link-glow 2.5s ease-in-out infinite;
+        }
+        @keyframes link-glow {
+            0%, 100% { 
+                opacity: 0.25; 
+                stroke: var(--fx-accent);
+                stroke-width: 1.2;
+                filter: none;
+            }
+            50% { 
+                opacity: 1; 
+                stroke: #ffffff;
+                stroke-width: 1.8;
+                filter: drop-shadow(0 0 6px var(--fx-accent)) drop-shadow(0 0 12px rgba(0, 212, 255, 0.6));
+            }
+        }
+        @keyframes link-glow-diag {
+            0%, 100% { opacity: 0.2; stroke-width: 0.9; filter: none; stroke: var(--fx-accent); }
+            50% { opacity: 1; stroke-width: 1.4; stroke: #ffffff; filter: drop-shadow(0 0 5px var(--fx-accent)); }
+        }
+        /* Varied timing for random network effect - edges */
+        .logo-lattice .line-glow.line-e1 { animation-delay: 0s, 0s; animation-duration: 1.2s, 2.1s; }
+        .logo-lattice .line-glow.line-e2 { animation-delay: 0s, 0.4s; animation-duration: 1.2s, 2.8s; }
+        .logo-lattice .line-glow.line-e3 { animation-delay: 0s, 1.2s; animation-duration: 1.2s, 2.3s; }
+        .logo-lattice .line-glow.line-e4 { animation-delay: 0s, 0.8s; animation-duration: 1.2s, 2.6s; }
+        .logo-lattice .line-glow.line-e5 { animation-delay: 0s, 1.8s; animation-duration: 1.2s, 1.9s; }
+        .logo-lattice .line-glow.line-e6 { animation-delay: 0s, 0.2s; animation-duration: 1.2s, 3.1s; }
+        .logo-lattice .line-glow.line-e7 { animation-delay: 0s, 1.5s; animation-duration: 1.2s, 2.4s; }
+        .logo-lattice .line-glow.line-e8 { animation-delay: 0s, 2s; animation-duration: 1.2s, 2.2s; }
+        .logo-lattice .line-glow.line-e9 { animation-delay: 0s, 0.6s; animation-duration: 1.2s, 2.9s; }
+        .logo-lattice .line-glow.line-e10 { animation-delay: 0s, 1.1s; animation-duration: 1.2s, 2.5s; }
+        .logo-lattice .line-glow.line-e11 { animation-delay: 0s, 1.4s; animation-duration: 1.2s, 2.7s; }
+        .logo-lattice .line-glow.line-e12 { animation-delay: 0s, 0.3s; animation-duration: 1.2s, 2.0s; }
+        /* Diagonals (rete) - internal network links with illuminate effect */
+        .logo-lattice .line-glow.line-d1 { animation: lattice-flow 1.2s linear infinite, link-glow-diag 3.2s ease-in-out infinite; animation-delay: 0s, 0.5s; stroke-width: 0.9; stroke-dasharray: 2 5; }
+        .logo-lattice .line-glow.line-d2 { animation: lattice-flow 1.2s linear infinite, link-glow-diag 2.1s ease-in-out infinite; animation-delay: 0s, 1.3s; stroke-width: 0.9; stroke-dasharray: 2 5; }
+        .logo-lattice .line-glow.line-d3 { animation: lattice-flow 1.2s linear infinite, link-glow-diag 2.8s ease-in-out infinite; animation-delay: 0s, 1.9s; stroke-width: 0.9; stroke-dasharray: 2 5; }
+        .logo-lattice .line-glow.line-d4 { animation: lattice-flow 1.2s linear infinite, link-glow-diag 2.4s ease-in-out infinite; animation-delay: 0s, 0.9s; stroke-width: 0.9; stroke-dasharray: 2 5; }
+        .hero-section p,
+        .hero-tagline {
+            color: var(--fx-text-muted); font-size: 0.95rem; line-height: 1.6;
+        }
+        .hero-tagline {
+            margin-top: 1rem; text-align: center;
+        }
+        .ai-cta {
+            text-align: center;
+            margin-top: 1.5rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .ai-cta.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .ai-cta-text {
+            display: block;
+            color: var(--fx-text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 0.85rem;
+        }
+        .btn-explore {
+            font-family: 'Orbitron', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.05));
+            color: var(--fx-accent);
+            border: 1px solid var(--fx-accent);
+            padding: 0.85rem 1.75rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-explore:hover {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 212, 255, 0.1));
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 212, 255, 0.05);
+            transform: translateY(-2px);
+        }
+        .btn-explore:active {
+            transform: translateY(0);
+        }
+        .btn-explore .btn-cube-icon {
+            flex-shrink: 0;
+            width: 1.75em;
+            height: 1.75em;
+        }
+        .btn-explore .btn-cube-icon line,
+        .btn-explore .btn-cube-icon path {
+            stroke: currentColor;
+            stroke-width: 1.2;
+            fill: none;
+        }
+        .btn-explore .btn-cube-icon circle {
+            fill: currentColor;
+        }
+        .btn-explore .btn-grid-icon {
+            filter: none;
+        }
+        .btn-explore .btn-grid-icon line,
+        .btn-explore .btn-grid-icon path,
+        .btn-explore .btn-grid-icon circle {
+            animation: none;
+        }
+        .btn-explore .arrow {
+            transition: transform 0.3s ease;
+        }
+        .btn-explore:hover .arrow {
+            transform: translateX(4px);
+        }
+        /* Action links */
+        .actions-section {
+            display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .actions-section a {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            background: rgba(0, 212, 255, 0.08); color: var(--fx-accent);
+            border: 1px solid var(--fx-border);
+            padding: 0.5rem 1rem; font-size: 0.85rem;
+            text-decoration: none; cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .actions-section a .icon { flex-shrink: 0; }
+        .actions-section a:hover {
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: var(--fx-glow);
+        }
+
+        /* ========== REDLEMON THEME ========== */
+        .landing-page[data-theme="redlemon"] {
+            --fx-bg-dark: #0f0a0a;
+            --fx-bg-card: rgba(30, 12, 12, 0.92);
+            --fx-border: rgba(229, 57, 53, 0.35);
+            --fx-accent: #ff5252;
+            --fx-accent-dim: rgba(255, 235, 59, 0.9);
+            --fx-accent-secondary: #ffeb3b;
+            --fx-text: #f5e6e6;
+            --fx-text-muted: #c4a5a5;
+            --fx-glow: 0 0 24px rgba(255, 82, 82, 0.2);
+            --fx-glow-strong: 0 0 36px rgba(255, 235, 59, 0.25);
+        }
+        .landing-page[data-theme="redlemon"] {
+            background: var(--fx-bg-dark);
+            background-image:
+                linear-gradient(180deg, rgba(255, 82, 82, 0.08) 0%, transparent 40%),
+                radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255, 235, 59, 0.15) 0%, transparent 55%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cdefs%3E%3Cpattern id='r' width='80' height='80' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='40' cy='40' r='0.8' fill='rgba(255,82,82,0.2)'/%3E%3Ccircle cx='10' cy='10' r='0.5' fill='rgba(255,235,59,0.15)'/%3E%3Ccircle cx='70' cy='70' r='0.5' fill='rgba(255,235,59,0.12)'/%3E%3Cline x1='0' y1='40' x2='80' y2='40' stroke='rgba(255,82,82,0.12)' stroke-width='0.4'/%3E%3Cline x1='40' y1='0' x2='40' y2='80' stroke='rgba(255,82,82,0.12)' stroke-width='0.4'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23r)'/%3E%3C/svg%3E");
+        }
+        .landing-page[data-theme="redlemon"] .hero-title-row {
+            font-family: 'Outfit', sans-serif;
+            color: var(--fx-accent);
+            text-shadow: 0 0 30px rgba(255, 82, 82, 0.5), 0 2px 0 rgba(255, 235, 59, 0.3);
+        }
+        .landing-page[data-theme="redlemon"] .logo-lattice {
+            filter: drop-shadow(0 0 20px rgba(255, 82, 82, 0.6));
+        }
+        .landing-page[data-theme="redlemon"] .logo-lattice line,
+        .landing-page[data-theme="redlemon"] .logo-lattice circle {
+            stroke: var(--fx-accent);
+            fill: var(--fx-accent);
+        }
+        .landing-page[data-theme="redlemon"] .logo-lattice .line-flow {
+            stroke: var(--fx-accent);
+        }
+        .landing-page[data-theme="redlemon"] .logo-lattice .node-pulse {
+            fill: var(--fx-accent-secondary);
+        }
+        .landing-page[data-theme="redlemon"] .btn-explore {
+            background: linear-gradient(135deg, rgba(255, 82, 82, 0.2), rgba(255, 235, 59, 0.08));
+            border-color: var(--fx-accent);
+            color: var(--fx-accent);
+        }
+        .landing-page[data-theme="redlemon"] .btn-explore:hover {
+            background: linear-gradient(135deg, rgba(255, 82, 82, 0.35), rgba(255, 235, 59, 0.15));
+            box-shadow: 0 0 30px rgba(255, 82, 82, 0.4), inset 0 0 20px rgba(255, 235, 59, 0.05);
+        }
+        .landing-page[data-theme="redlemon"] .actions-section a {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--fx-accent);
+            border-color: var(--fx-border);
+        }
+        .landing-page[data-theme="redlemon"] .actions-section a:hover {
+            background: rgba(255, 82, 82, 0.2);
+        }
+        /* Logo swap: hide grid in redlemon, show lemon */
+        .landing-page[data-theme="redlemon"] .logo-flying-net { display: none; }
+        .landing-page[data-theme="redlemon"] .logo-lemon { display: flex !important; align-items: center; justify-content: center; }
+        .landing-page[data-theme="nos"] .logo-lemon { display: none; }
+        /* RedLemon lemon logo styling */
+        .logo-lemon .logo-lattice {
+            color: #ffeb3b;
+            filter: drop-shadow(0 0 20px rgba(255, 235, 59, 0.7)) drop-shadow(0 0 8px rgba(255, 82, 82, 0.4));
+        }
+        .logo-lemon .lemon-outline { stroke: #ff5252; }
+        .logo-lemon .lemon-segment { fill: #ffeb3b; }
+        .logo-lemon .lemon-core { fill: #ff5252; }
+        .logo-lemon .logo-lattice {
+            animation: lemon-pulse 3s ease-in-out infinite;
+        }
+        @keyframes lemon-pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 235, 59, 0.7)) drop-shadow(0 0 8px rgba(255, 82, 82, 0.4)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 28px rgba(255, 235, 59, 0.9)) drop-shadow(0 0 12px rgba(255, 82, 82, 0.6)); }
+        }
+        /* Theme label in title */
+        .landing-page .title-nosn { display: inline; }
+        .landing-page .title-redlemon { display: none; }
+        .landing-page[data-theme="redlemon"] .title-nosn { display: none; }
+        .landing-page[data-theme="redlemon"] .title-redlemon { display: inline; }
+        /* Hero copy: Orkestro vs RedLemon */
+        .landing-page .hero-redlemon { display: none; }
+        .landing-page[data-theme="redlemon"] .hero-nos { display: none; }
+        .landing-page[data-theme="redlemon"] .hero-redlemon { display: block; }
+        .hero-platform { margin-top: 0.75rem; font-size: 0.9rem; }
+        .hero-platform a { color: var(--fx-accent); text-decoration: none; }
+        .hero-platform a:hover { text-decoration: underline; }
+        .btn-redlemon-icon { width: 1.5em; height: 1.5em; flex-shrink: 0; }
+        .btn-redlemon-icon .lemon-segment { fill: #ffeb3b; }
+        .btn-redlemon-icon .lemon-core { fill: #ff5252; }
+        .btn-redlemon-icon .lemon-outline { stroke: #ff5252; fill: none; }
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--fx-bg-card);
+            border: 1px solid var(--fx-border);
+            border-radius: 10px;
+            color: var(--fx-accent);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .theme-toggle:hover {
+            transform: scale(1.08);
+            box-shadow: var(--fx-glow);
+        }
+        .theme-toggle:focus {
+            outline: none;
+        }
+        .landing-page[data-theme="redlemon"] .theme-toggle {
+            color: var(--fx-accent);
+        }
+    </style>
+{% endblock %}
+{% block body %}
+    <div class="landing-page" id="landing-page" data-theme="nos">
+    <button class="theme-toggle" id="theme-toggle" title="Switch theme (Orkestro / RedLemon)" aria-label="Switch theme">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+    </button>
+    <a class="body-github" href="https://github.com/nosn/nosn" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    </a>
+    <div class="page-wrapper">
+        <section class="hero-section">
+            <div class="hero-title-row">
+                <!-- Cube logo (COMMENTED - backup)
+                <div class="logo-cube-wrapper">
+                    <svg class="logo-lattice" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <line class="line-flow line-glow line-e1" x1="13" y1="35" x2="29" y2="35"/>
+                        <line class="line-flow line-glow line-e2" x1="29" y1="35" x2="35" y2="29"/>
+                        <line class="line-flow line-glow line-e3" x1="35" y1="29" x2="19" y2="29"/>
+                        <line class="line-flow line-glow line-e4" x1="19" y1="29" x2="13" y2="35"/>
+                        <line class="line-flow line-glow line-e5" x1="13" y1="19" x2="29" y2="19"/>
+                        <line class="line-flow line-glow line-e6" x1="29" y1="19" x2="35" y2="13"/>
+                        <line class="line-flow line-glow line-e7" x1="35" y1="13" x2="19" y2="13"/>
+                        <line class="line-flow line-glow line-e8" x1="19" y1="13" x2="13" y2="19"/>
+                        <line class="line-flow line-glow line-e9" x1="13" y1="35" x2="13" y2="19"/>
+                        <line class="line-flow line-glow line-e10" x1="29" y1="35" x2="29" y2="19"/>
+                        <line class="line-flow line-glow line-e11" x1="35" y1="29" x2="35" y2="13"/>
+                        <line class="line-flow line-glow line-e12" x1="19" y1="29" x2="19" y2="13"/>
+                        <line class="line-flow line-glow line-d1" x1="13" y1="35" x2="35" y2="29"/>
+                        <line class="line-flow line-glow line-d2" x1="29" y1="35" x2="19" y2="29"/>
+                        <line class="line-flow line-glow line-d3" x1="13" y1="19" x2="35" y2="13"/>
+                        <line class="line-flow line-glow line-d4" x1="29" y1="19" x2="19" y2="13"/>
+                        <circle class="node-pulse node-1" cx="13" cy="35" r="1.5"/>
+                        <circle class="node-pulse node-2" cx="29" cy="35" r="1.5"/>
+                        <circle class="node-pulse node-3" cx="35" cy="29" r="1.5"/>
+                        <circle class="node-pulse node-4" cx="19" cy="29" r="1.5"/>
+                        <circle class="node-pulse node-5" cx="13" cy="19" r="1.5"/>
+                        <circle class="node-pulse node-6" cx="29" cy="19" r="1.5"/>
+                        <circle class="node-pulse node-7" cx="35" cy="13" r="1.5"/>
+                        <circle class="node-pulse node-8" cx="19" cy="13" r="1.5"/>
+                        <circle class="node-pulse node-9" cx="24" cy="24" r="1.8"/>
+                    </svg>
+                </div>
+                -->
+                
+                <!-- RedLemon: lemon wedge logo -->
+                <div class="logo-lemon" style="display:none; flex-shrink: 0;">
+                    <svg class="logo-lattice" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="7rem" height="7rem">
+                        <g transform="translate(24,24)">
+                            <!-- Lemon wedge: half circle with 6 segments -->
+                            <path class="lemon-segment" d="M0 -20 A20 20 0 0 1 17.32 -10 L0 0 Z"/>
+                            <path class="lemon-segment" d="M17.32 -10 A20 20 0 0 1 17.32 10 L0 0 Z"/>
+                            <path class="lemon-segment" d="M17.32 10 A20 20 0 0 1 0 20 L0 0 Z"/>
+                            <path class="lemon-segment" d="M0 20 A20 20 0 0 1 -17.32 10 L0 0 Z"/>
+                            <path class="lemon-segment" d="M-17.32 10 A20 20 0 0 1 -17.32 -10 L0 0 Z"/>
+                            <path class="lemon-segment" d="M-17.32 -10 A20 20 0 0 1 0 -20 L0 0 Z"/>
+                            <circle class="lemon-core" cx="0" cy="0" r="5"/>
+                            <ellipse class="lemon-outline" cx="0" cy="0" rx="20" ry="20" fill="none" stroke-width="1.2"/>
+                        </g>
+                    </svg>
+                </div>
+                <!-- Foglio a quadretti volante (Orkestro) -->
+                <div class="logo-flying-net">
+                    <svg class="logo-lattice" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <g class="grid-sheet" transform="rotate(-28 24 24)">
+                            <!-- Linee orizzontali -->
+                            <line class="line-flow line-glow line-e1" x1="12" y1="12" x2="36" y2="12"/>
+                            <line class="line-flow line-glow line-e2" x1="12" y1="18" x2="36" y2="18"/>
+                            <line class="line-flow line-glow line-e3" x1="12" y1="24" x2="36" y2="24"/>
+                            <line class="line-flow line-glow line-e4" x1="12" y1="30" x2="36" y2="30"/>
+                            <line class="line-flow line-glow line-e5" x1="12" y1="36" x2="36" y2="36"/>
+                            <!-- Linee verticali -->
+                            <line class="line-flow line-glow line-e6" x1="12" y1="12" x2="12" y2="36"/>
+                            <line class="line-flow line-glow line-e7" x1="18" y1="12" x2="18" y2="36"/>
+                            <line class="line-flow line-glow line-e8" x1="24" y1="12" x2="24" y2="36"/>
+                            <line class="line-flow line-glow line-e9" x1="30" y1="12" x2="30" y2="36"/>
+                            <line class="line-flow line-glow line-e10" x1="36" y1="12" x2="36" y2="36"/>
+                            <!-- Diagonali interne (maglia) -->
+                            <line class="line-flow line-glow line-e11" x1="12" y1="18" x2="18" y2="12"/>
+                            <line class="line-flow line-glow line-e12" x1="24" y1="18" x2="30" y2="12"/>
+                            <path class="line-flow line-glow line-d1" fill="none" stroke-linecap="round" stroke-dasharray="2 4" d="M 12 12 L 36 36"/>
+                            <path class="line-flow line-glow line-d2" fill="none" stroke-linecap="round" stroke-dasharray="2 4" d="M 36 12 L 12 36"/>
+                            <line class="line-flow line-glow line-d3" x1="18" y1="24" x2="24" y2="18"/>
+                            <line class="line-flow line-glow line-d4" x1="30" y1="24" x2="24" y2="30"/>
+                            <!-- Nodi agli incroci -->
+                            <circle class="node-pulse node-1" cx="12" cy="12" r="1.2"/>
+                            <circle class="node-pulse node-2" cx="24" cy="12" r="1.2"/>
+                            <circle class="node-pulse node-3" cx="36" cy="12" r="1.2"/>
+                            <circle class="node-pulse node-4" cx="12" cy="24" r="1.3"/>
+                            <circle class="node-pulse node-5" cx="24" cy="24" r="1.6"/>
+                            <circle class="node-pulse node-6" cx="36" cy="24" r="1.3"/>
+                            <circle class="node-pulse node-7" cx="12" cy="36" r="1.2"/>
+                            <circle class="node-pulse node-8" cx="24" cy="36" r="1.2"/>
+                            <circle class="node-pulse node-9" cx="36" cy="36" r="1.2"/>
+                        </g>
+                    </svg>
+                </div>
+                
+                <!-- Android Brain Logo - Neural Network (COMMENTED - backup)
+                <svg class="logo-lattice" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path class="line-flow" fill="none" stroke-linecap="round" stroke-linejoin="round"
+                          d="M24 8 C16 8, 10 12, 9 18 C8 22, 8 26, 9 30 C10 36, 15 40, 24 40 C33 40, 38 36, 39 30 C40 26, 40 22, 39 18 C38 12, 32 8, 24 8"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M24 10 C24 14, 23 20, 24 26 C25 32, 24 36, 24 38"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M12 20 C15 18, 18 19, 20 22"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M11 26 C14 25, 17 26, 20 28"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M13 32 C16 30, 19 31, 22 34"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M16 15 C18 17, 19 20, 18 24"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M36 20 C33 18, 30 19, 28 22"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M37 26 C34 25, 31 26, 28 28"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M35 32 C32 30, 29 31, 26 34"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M32 15 C30 17, 29 20, 30 24"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" stroke-dasharray="2 3" d="M18 24 C21 22, 27 22, 30 24"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" stroke-dasharray="2 3" d="M20 30 C22 28, 26 28, 28 30"/>
+                    <circle class="node-pulse node-1" cx="12" cy="20" r="1.8"/>
+                    <circle class="node-pulse node-2" cx="11" cy="26" r="1.5"/>
+                    <circle class="node-pulse node-3" cx="13" cy="32" r="1.6"/>
+                    <circle class="node-pulse node-4" cx="16" cy="15" r="1.4"/>
+                    <circle class="node-pulse node-5" cx="18" cy="24" r="2.0"/>
+                    <circle class="node-pulse node-6" cx="36" cy="20" r="1.8"/>
+                    <circle class="node-pulse node-7" cx="37" cy="26" r="1.5"/>
+                    <circle class="node-pulse node-8" cx="35" cy="32" r="1.6"/>
+                    <circle class="node-pulse node-9" cx="32" cy="15" r="1.4"/>
+                    <circle class="node-pulse node-1" cx="30" cy="24" r="2.0"/>
+                    <circle class="node-pulse node-3" cx="24" cy="18" r="1.7"/>
+                    <circle class="node-pulse node-6" cx="24" cy="30" r="1.7"/>
+                    <path class="line-flow" fill="none" stroke-linecap="round" d="M24 38 L24 44"/>
+                    <circle class="node-pulse node-5" cx="24" cy="44" r="1.5"/>
+                </svg>
+                -->
+                <span class="title-nosn">Orkestro</span>
+                <span class="title-redlemon">RedLemon</span>
+            </div>
+            <!-- Action links (temporarily commented)
+            <nav class="actions-section">
+                <a href="{{ url_for('web.docs') }}" target="_blank" rel="noopener noreferrer">
+                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>
+                    Docs
+                </a>
+                <a href="https://github.com/nosn/nosn" target="_blank" rel="noopener noreferrer">
+                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    Github
+                </a>
+                <a href="https://pypi.org/project/nosn/" target="_blank" rel="noopener noreferrer">
+                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download
+                </a>
+            </nav>
+            -->
+            <div class="hero-nos">
+                <p class="hero-tagline">Connect systems, orchestrate processes, and bring your ideas to life.</p>
+                <div class="ai-cta visible">
+                    <span class="ai-cta-text">Ready to automate your world?</span>
+                    <a href="{{ url_for('web.home') }}" class="btn-explore" style="text-decoration: none;">
+                        <svg class="btn-cube-icon btn-grid-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <g transform="rotate(-28 24 24)">
+                                <line x1="12" y1="12" x2="36" y2="12"/>
+                                <line x1="12" y1="18" x2="36" y2="18"/>
+                                <line x1="12" y1="24" x2="36" y2="24"/>
+                                <line x1="12" y1="30" x2="36" y2="30"/>
+                                <line x1="12" y1="36" x2="36" y2="36"/>
+                                <line x1="12" y1="12" x2="12" y2="36"/>
+                                <line x1="18" y1="12" x2="18" y2="36"/>
+                                <line x1="24" y1="12" x2="24" y2="36"/>
+                                <line x1="30" y1="12" x2="30" y2="36"/>
+                                <line x1="36" y1="12" x2="36" y2="36"/>
+                                <line x1="12" y1="18" x2="18" y2="12"/>
+                                <line x1="24" y1="18" x2="30" y2="12"/>
+                                <path fill="none" stroke-linecap="round" d="M 12 12 L 36 36"/>
+                                <path fill="none" stroke-linecap="round" d="M 36 12 L 12 36"/>
+                                <line x1="18" y1="24" x2="24" y2="18"/>
+                                <line x1="30" y1="24" x2="24" y2="30"/>
+                                <circle cx="12" cy="12" r="1.2"/>
+                                <circle cx="24" cy="12" r="1.2"/>
+                                <circle cx="36" cy="12" r="1.2"/>
+                                <circle cx="12" cy="24" r="1.2"/>
+                                <circle cx="24" cy="24" r="1.2"/>
+                                <circle cx="36" cy="24" r="1.2"/>
+                                <circle cx="12" cy="36" r="1.2"/>
+                                <circle cx="24" cy="36" r="1.2"/>
+                                <circle cx="36" cy="36" r="1.2"/>
+                            </g>
+                        </svg>
+                        <span>Start Exploring</span>
+                        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            <div class="hero-redlemon">
+                <p class="hero-tagline">RedLemon is the public showcase for digital assistants—discover, try, and integrate AI assistants for your workflows.</p>
+                <p class="hero-platform">Based on the <a href="{{ url_for('web.home') }}" target="_blank" rel="noopener noreferrer">Orkestro</a> platform.</p>
+                <div class="ai-cta visible">
+                    <a href="#redlemon-showcase" class="btn-explore" style="text-decoration: none;" title="Browse the assistant showcase (coming soon)">
+                        <svg class="btn-redlemon-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <g transform="translate(24,24)">
+                                <path class="lemon-segment" d="M0 -20 A20 20 0 0 1 17.32 -10 L0 0 Z"/>
+                                <path class="lemon-segment" d="M17.32 -10 A20 20 0 0 1 17.32 10 L0 0 Z"/>
+                                <path class="lemon-segment" d="M17.32 10 A20 20 0 0 1 0 20 L0 0 Z"/>
+                                <path class="lemon-segment" d="M0 20 A20 20 0 0 1 -17.32 10 L0 0 Z"/>
+                                <path class="lemon-segment" d="M-17.32 10 A20 20 0 0 1 -17.32 -10 L0 0 Z"/>
+                                <path class="lemon-segment" d="M-17.32 -10 A20 20 0 0 1 0 -20 L0 0 Z"/>
+                                <circle class="lemon-core" cx="0" cy="0" r="5"/>
+                                <ellipse class="lemon-outline" cx="0" cy="0" rx="20" ry="20" fill="none" stroke-width="1.2"/>
+                            </g>
+                        </svg>
+                        <span>Discover Assistants</span>
+                        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+    </div>
+    <script>
+(function() {
+    var KEY = 'index-landing-theme';
+    var page = document.getElementById('landing-page');
+    var btn = document.getElementById('theme-toggle');
+    if (!page || !btn) return;
+    function applyTheme(theme) {
+        page.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-theme', theme);
+        btn.setAttribute('title', theme === 'redlemon' ? 'Switch to Orkestro theme' : 'Switch to RedLemon theme');
+        try { localStorage.setItem(KEY, theme); } catch(e) {}
+    }
+    var saved = localStorage.getItem(KEY);
+    if (saved === 'redlemon' || saved === 'nos' || saved === 'nosn') applyTheme(saved === 'nosn' ? 'nos' : saved);
+    btn.addEventListener('click', function() {
+        var next = page.getAttribute('data-theme') === 'redlemon' ? 'nos' : 'redlemon';
+        applyTheme(next);
+    });
+})();
+    </script>
+{% endblock %}

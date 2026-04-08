@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .engine { min-height: 400px; }
+        wx-data-grid {
+            display: block;
+            width: 100%;
+            height: 600px;
+            min-height: 400px;
+            max-height: calc(100vh - 200px);
+        }
+        .hint-highlight {
+            color: var(--app-accent);
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/index.86a5bf44.umd.js') }}"></script>
+</head>
+<body>
+    <div class="engine">
+        <h2>Command line console</h2>
+        <p>Double click to open the command line.</p>
+        <wx-data-grid class="theme-dark" origin="{{ url_for('api.get_engine_list') }}" auto-load freeze></wx-data-grid>
+    </div>
+    <script>
+        (function() {
+            var runUrl = '{{ url_for("web.engine_run") }}';
+            function handleRowClicked(e) {
+                var row = (e.detail && e.detail.rowData) ? e.detail.rowData : (e.detail && e.detail.row) ? e.detail.row : (e.detail && (e.detail.type || e.detail.id)) ? e.detail : null;
+                if (!row) return;
+                var type = row.type;
+                var id = row.id;
+                if (type && id) {
+                    window.open(runUrl + '?type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id), '_blank');
+                }
+            }
+            if (document._engineRowListener) return;
+            document._engineRowListener = true;
+            document.addEventListener('row-clicked', handleRowClicked);
+        })();
+    </script>
+</body>
+</html>

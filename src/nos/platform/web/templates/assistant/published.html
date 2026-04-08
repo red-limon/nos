@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        wx-data-grid {
+            display: block;
+            width: 100%;
+            height: 600px;
+            min-height: 400px;
+            max-height: calc(100vh - 200px);
+        }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(78, 201, 176, 0.1); border-left: 3px solid var(--term-accent);
+            font-size: 0.9rem; color: var(--term-muted);
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/index.86a5bf44.umd.js') }}"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Public Assistants Registry</h2>
+        <div class="toast-info">Published assistants available for public use.</div>
+        <div class="toast-info">These assistants have been reviewed and approved for production.</div>
+        <div class="toast-info">Use the 'pub' command in the Console to publish an assistant.</div>
+        <wx-data-grid class="theme-dark" origin="{{ url_for('api.get_assistant_list_published') }}" row-key="assistant_id" auto-load form-stylesheet-href="/static/css/app-theme.css"></wx-data-grid>
+    </div>
+</body>
+</html>

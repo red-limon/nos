@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}{{ app_title }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    {% block extra_head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% block body %}
+    <nav class="navbar">
+        <div class="container">
+            <h1></h1>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('web.index') }}">Home</a></li>
+                <li><a href="/api/users">API Users</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p></p>
+        </div>
+    </footer>
+{% endblock %}
+
+    <!-- Socket.IO client library (CDN) -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

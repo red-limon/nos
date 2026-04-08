@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Console</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/plugin-console.css') }}">
+</head>
+<body>
+    <div class="plugin-console theme-{{ theme | default('dark') }}" style="height: 100vh;">
+        {% include 'includes/plugin_console_markup.html' %}
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/upload_progress.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/plugin-console-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/console-socket.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,1178 @@
+{% extends "base.html" %}
+
+{% block title %}{% endblock %}
+
+{% block content %}
+<!-- Notification Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<div class="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>MrX Dashboard</h2>
+        <a href="{{ url_for('web.home') }}" class="btn" style="text-decoration: none;">
+            🎮 Playground UI
+        </a>
+    </div>
+    
+    <!-- Statistics -->
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Active Users</h3>
+            <div class="stat-value" id="active-users-count">{{ active_users_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <div class="stat-value" id="total-users-count">{{ users|length }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Socket.IO</h3>
+            <div class="stat-value" id="socket-status" style="font-size: 1rem;">
+                <span id="socket-status-text">Connecting...</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>SSE</h3>
+            <div class="stat-value" id="sse-status" style="font-size: 1rem;">
+                <span id="sse-status-text">Connecting...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Users Section -->
+    <div class="section">
+        <h3>API Users Management</h3>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Create User</h4>
+            <form id="create-user-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div>
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required 
+                           style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required
+                           style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <button type="submit" class="btn">Create User</button>
+            </form>
+        </div>
+
+        <div>
+            <h4>Users List</h4>
+            <button class="btn" onclick="loadUsers()" style="margin-bottom: 1rem;">Refresh Users</button>
+            <div id="users-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        {% for user in users %}
+                        <tr data-user-id="{{ user.id }}">
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; margin-right: 0.5rem;"
+                                        onclick="deleteUser({{ user.id }})">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflows Section -->
+    <div class="section">
+        <h3>Workflow Engine</h3>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Available Workflows</h4>
+            <button class="btn" onclick="loadWorkflows()" style="margin-bottom: 1rem;">Load Workflows</button>
+            <div id="workflows-list" style="margin-bottom: 1.5rem;">
+                <p style="color: #666;">Click "Load Workflows" to see available workflows</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Start Workflow</h4>
+            <form id="start-workflow-form" style="display: grid; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label for="workflow-id">Workflow ID:</label>
+                        <select id="workflow-id" name="workflow_id" required
+                                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Select workflow...</option>
+                            <option value="if_then_example">If-Then Example</option>
+                            <option value="loop_example">Loop Example</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="execution-mode">Execution Mode:</label>
+                        <select id="execution-mode" name="execution_mode" required
+                                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="sync">Synchronous</option>
+                            <option value="background">Background</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label for="realtime-mode">Real-time Mode:</label>
+                        <select id="realtime-mode" name="realtime_mode"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="socketio">Socket.IO</option>
+                            <option value="sse">SSE</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="enable-realtime" name="enable_realtime" checked>
+                        <label for="enable-realtime">Enable Real-time Logs</label>
+                    </div>
+                </div>
+                <div>
+                    <label for="initial-state">Initial State (JSON):</label>
+                    <textarea id="initial-state" name="initial_state" rows="4"
+                              style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"
+                              placeholder='{"value": 5, "threshold": 10}'></textarea>
+                </div>
+                <button type="submit" class="btn">Start Workflow</button>
+            </form>
+        </div>
+
+        <div>
+            <h4>Workflow Executions</h4>
+            <div id="executions-container">
+                <p style="color: #666;">No active executions</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Standalone Nodes Section -->
+    <div class="section">
+        <h3>Standalone Node Execution</h3>
+        <p style="color: #666; margin-bottom: 1rem;">
+            Execute individual nodes outside of a workflow. Nodes are automatically registered when plugins are loaded.
+        </p>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Execute Node</h4>
+            <form id="execute-node-form" style="display: grid; gap: 1rem;">
+                <div>
+                    <label for="node-id">Node ID:</label>
+                    <select id="node-id" name="node_id" required
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Select node...</option>
+                        <!-- Will be populated by loadWorkflows() -->
+                    </select>
+                    <small style="color: #666;">Available nodes are loaded when you click "Load Workflows"</small>
+                </div>
+                <div>
+                    <label for="node-state">State (JSON):</label>
+                    <textarea id="node-state" name="node_state" rows="3"
+                              style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"
+                              placeholder='{"value": 5, "multiplier": 2}'></textarea>
+                </div>
+                <div>
+                    <label for="node-input">Input Data (JSON, optional):</label>
+                    <textarea id="node-input" name="node_input" rows="3"
+                              style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"
+                              placeholder='{"value": 10, "multiplier": 3}'></textarea>
+                    <small style="color: #666;">If not provided, state will be used as input</small>
+                </div>
+                <button type="submit" class="btn">Execute Node</button>
+            </form>
+        </div>
+
+        <div>
+            <h4>Node Execution Results</h4>
+            <div id="node-results-container">
+                <p style="color: #666;">No node executions yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Logs Section -->
+    <div class="section">
+        <h3>Real-time Logs</h3>
+        
+        <div style="margin-bottom: 1rem;">
+            <button class="btn" onclick="clearLogs()" style="margin-right: 0.5rem;">Clear Logs</button>
+            <label style="margin-left: 1rem;">
+                <input type="checkbox" id="auto-scroll" checked> Auto-scroll
+            </label>
+        </div>
+        
+        <div class="events-log" id="events-log">
+            <p style="color: #858585;">Waiting for events...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Form Styles */
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+        font-family: inherit;
+    }
+
+    /* Workflow Status */
+    .workflow-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .workflow-status.idle { background-color: #95a5a6; color: white; }
+    .workflow-status.running { background-color: #3498db; color: white; }
+    .workflow-status.completed { background-color: #27ae60; color: white; }
+    .workflow-status.error { background-color: #e74c3c; color: white; }
+    .workflow-status.stopped { background-color: #e67e22; color: white; }
+
+    /* Execution Card */
+    .execution-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #3498db;
+    }
+
+    .execution-card h5 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+
+    .execution-card .execution-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    /* Status indicators */
+    #socket-status-text, #sse-status-text {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-connected {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    .status-disconnected {
+        background-color: #e74c3c;
+        color: white;
+    }
+
+    .status-connecting {
+        background-color: #f39c12;
+        color: white;
+    }
+
+    /* Button variants */
+    .btn-danger {
+        background-color: #e74c3c;
+    }
+
+    .btn-danger:hover {
+        background-color: #c0392b;
+    }
+
+    .btn-success {
+        background-color: #27ae60;
+    }
+
+    .btn-success:hover {
+        background-color: #229954;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+    }
+
+    .toast {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        animation: slideIn 0.3s ease-out;
+        border-left: 4px solid #3498db;
+        min-width: 300px;
+    }
+
+    .toast.success {
+        border-left-color: #27ae60;
+    }
+
+    .toast.error {
+        border-left-color: #e74c3c;
+    }
+
+    .toast.warning {
+        border-left-color: #f39c12;
+    }
+
+    .toast.info {
+        border-left-color: #3498db;
+    }
+
+    .toast.loading {
+        border-left-color: #95a5a6;
+    }
+
+    .toast-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .toast-content {
+        flex: 1;
+    }
+
+    .toast-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: #2c3e50;
+    }
+
+    .toast-message {
+        font-size: 0.9rem;
+        color: #666;
+        word-wrap: break-word;
+    }
+
+    .toast-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #999;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .toast-close:hover {
+        color: #333;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    .toast.hiding {
+        animation: slideOut 0.3s ease-out forwards;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Global state
+    let activeExecutions = {};
+    let eventSource = null;
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadUsers();
+        loadWorkflows();
+        connectSSE();
+        initSocketIOHandlers();
+    });
+
+    // ========== Toast Notification System ==========
+    function showToast(type, title, message, duration = 5000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '⚠',
+            info: 'ℹ',
+            loading: '⟳'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto-remove after duration (except for loading)
+        if (type !== 'loading' && duration > 0) {
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        return toast;
+    }
+
+    function hideToast(toast) {
+        if (toast && toast.parentElement) {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }
+
+    // ========== API Users ==========
+    function loadUsers() {
+        fetch('/api/users')
+            .then(response => response.json())
+            .then(users => {
+                const tbody = document.getElementById('users-tbody');
+                tbody.innerHTML = '';
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-user-id', user.id);
+                    row.innerHTML = `
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;"
+                                    onclick="deleteUser(${user.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                document.getElementById('total-users-count').textContent = users.length;
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                addLog('error', 'Failed to load users: ' + error.message);
+            });
+    }
+
+    document.getElementById('create-user-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        
+        // Basic client-side validation
+        if (!username || username.length < 3) {
+            showToast('error', 'Validation Error', 'Username must be at least 3 characters long');
+            return;
+        }
+        
+        if (!email || !email.includes('@')) {
+            showToast('error', 'Validation Error', 'Please enter a valid email address');
+            return;
+        }
+        
+        const formData = {
+            username: username,
+            email: email
+        };
+
+        // Show loading toast
+        const loadingToast = showToast('loading', 'Creating User', 'Please wait...', 0);
+
+        fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            const status = response.status;
+            return response.json().then(data => ({ status, data })).catch(() => {
+                // If response is not JSON, return text
+                return response.text().then(text => ({ status, data: { message: text } }));
+            });
+        })
+        .then(({ status, data }) => {
+            hideToast(loadingToast);
+            
+            if (status === 201 || status === 200) {
+                showToast('success', 'User Created', `User ${data.username} (${data.email}) created successfully`);
+                addLog('info', `User created: ${data.username} (${data.email})`);
+                document.getElementById('create-user-form').reset();
+                loadUsers();
+            } else {
+                // Show error toast with detailed message
+                let errorMsg = data.message || data.error || 'Unknown error';
+                if (data.details && Array.isArray(data.details)) {
+                    const validationErrors = data.details.map(d => d.msg || JSON.stringify(d)).join(', ');
+                    errorMsg += ': ' + validationErrors;
+                }
+                showToast('error', 'Error Creating User', errorMsg);
+                addLog('error', `Failed to create user: ${errorMsg}`);
+                console.error('User creation error:', data);
+            }
+        })
+        .catch(error => {
+            hideToast(loadingToast);
+            const errorMsg = 'Network error: ' + error.message;
+            showToast('error', 'Error Creating User', errorMsg);
+            console.error('Error creating user:', error);
+            addLog('error', 'Error creating user: ' + error.message);
+        });
+    });
+
+    function deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+
+        const loadingToast = showToast('loading', 'Deleting User', 'Please wait...', 0);
+
+        fetch(`/api/users/${userId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            const status = response.status;
+            return response.json().then(data => ({ status, data })).catch(() => {
+                return { status, data: { message: 'User deleted' } };
+            });
+        })
+        .then(({ status, data }) => {
+            hideToast(loadingToast);
+            
+            if (status === 200 || status === 204) {
+                showToast('success', 'User Deleted', `User ${userId} deleted successfully`);
+                addLog('info', `User ${userId} deleted`);
+                loadUsers();
+            } else {
+                const errorMsg = data.message || data.error || 'Unknown error';
+                showToast('error', 'Error Deleting User', errorMsg);
+                addLog('error', `Failed to delete user: ${errorMsg}`);
+            }
+        })
+        .catch(error => {
+            hideToast(loadingToast);
+            const errorMsg = 'Network error: ' + error.message;
+            showToast('error', 'Error Deleting User', errorMsg);
+            console.error('Error deleting user:', error);
+            addLog('error', 'Error deleting user: ' + error.message);
+        });
+    }
+
+    // ========== Workflows ==========
+    function loadWorkflows() {
+        console.log('loadWorkflows() called');
+        const loadingToast = showToast('loading', 'Loading Workflows', 'Fetching available workflows...', 0);
+        
+        console.log('Fetching /api/workflows...');
+        fetch('/api/workflows')
+            .then(response => {
+                const status = response.status;
+                if (!response.ok) {
+                    throw new Error(`HTTP ${status}: ${response.statusText}`);
+                }
+                return response.json().then(data => ({ status, data }));
+            })
+            .then(({ status, data }) => {
+                hideToast(loadingToast);
+                
+                const container = document.getElementById('workflows-list');
+                if (!container) {
+                    console.error('Container workflows-list not found');
+                    showToast('error', 'Error', 'Workflows container not found');
+                    return;
+                }
+                
+                let html = '<div style="display: grid; gap: 0.5rem;">';
+                
+                if (data.workflows && data.workflows.length > 0) {
+                    html += `<p><strong>Workflows (${data.workflows.length}):</strong> ${data.workflows.join(', ')}</p>`;
+                } else {
+                    html += `<p><strong>Workflows:</strong> <span style="color: #999;">None available</span></p>`;
+                }
+                
+                if (data.nodes && data.nodes.length > 0) {
+                    html += `<p><strong>Nodes (${data.nodes.length}):</strong> ${data.nodes.join(', ')}</p>`;
+                } else {
+                    html += `<p><strong>Nodes:</strong> <span style="color: #999;">None available</span></p>`;
+                }
+                
+                if (data.links && data.links.length > 0) {
+                    html += `<p><strong>Links (${data.links.length}):</strong> ${data.links.join(', ')}</p>`;
+                } else {
+                    html += `<p><strong>Links:</strong> <span style="color: #999;">None available</span></p>`;
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+                // Update workflow dropdown
+                const workflowSelect = document.getElementById('workflow-id');
+                if (workflowSelect && data.workflows && data.workflows.length > 0) {
+                    // Clear existing options except the first one
+                    while (workflowSelect.options.length > 1) {
+                        workflowSelect.remove(1);
+                    }
+                    // Add workflows from API
+                    data.workflows.forEach(workflowId => {
+                        const option = document.createElement('option');
+                        option.value = workflowId;
+                        option.textContent = workflowId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        workflowSelect.appendChild(option);
+                    });
+                }
+                
+                const workflowCount = data.workflows ? data.workflows.length : 0;
+                if (workflowCount > 0) {
+                    showToast('success', 'Workflows Loaded', `${workflowCount} workflow(s) available`);
+                } else {
+                    showToast('warning', 'No Workflows', 'No workflows are currently registered');
+                }
+                
+                // Update node dropdown
+                const nodeSelect = document.getElementById('node-id');
+                if (nodeSelect && data.nodes && data.nodes.length > 0) {
+                    // Clear existing options except the first one
+                    while (nodeSelect.options.length > 1) {
+                        nodeSelect.remove(1);
+                    }
+                    // Add nodes from API
+                    data.nodes.forEach(nodeId => {
+                        const option = document.createElement('option');
+                        option.value = nodeId;
+                        option.textContent = nodeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        nodeSelect.appendChild(option);
+                    });
+                    
+                    // Add change event listener to populate input examples
+                    if (!nodeSelect.hasAttribute('data-listener-added')) {
+                        nodeSelect.setAttribute('data-listener-added', 'true');
+                        nodeSelect.addEventListener('change', function() {
+                            populateNodeInputExample(this.value);
+                        });
+                    }
+                }
+                
+                addLog('info', `Loaded ${workflowCount} workflow(s), ${data.nodes?.length || 0} node(s), ${data.links?.length || 0} link(s)`);
+            })
+            .catch(error => {
+                hideToast(loadingToast);
+                const errorMsg = error.message || 'Unknown error';
+                showToast('error', 'Error Loading Workflows', errorMsg);
+                console.error('Error loading workflows:', error);
+                addLog('error', 'Failed to load workflows: ' + errorMsg);
+            });
+    }
+
+    // ========== Standalone Node Execution ==========
+    // Node input examples mapping based on input schemas
+    const nodeInputExamples = {
+        'multiply': {
+            input: { value: 10, multiplier: 2 },
+            state: { value: 10, multiplier: 2 }
+        },
+        'greet': {
+            input: { name: "World", greeting: "Hello" },
+            state: { name: "World", greeting: "Hello" }
+        },
+        'sum': {
+            input: { values: [1, 2, 3, 4, 5] },
+            state: { values: [1, 2, 3, 4, 5], a: 5, b: 10 }
+        },
+        'start': {
+            input: null,
+            state: { value: 5 }
+        },
+        'process': {
+            input: null,
+            state: { value: 10 }
+        },
+        'counter': {
+            input: null,
+            state: { counter: 0 }
+        },
+        'increment': {
+            input: null,
+            state: { counter: 5 }
+        }
+    };
+
+    function populateNodeInputExample(nodeId) {
+        const inputTextarea = document.getElementById('node-input');
+        const stateTextarea = document.getElementById('node-state');
+        
+        if (!nodeId || !inputTextarea || !stateTextarea) {
+            return;
+        }
+        
+        const example = nodeInputExamples[nodeId];
+        
+        if (example) {
+            // Populate input data if example exists
+            if (example.input) {
+                inputTextarea.value = JSON.stringify(example.input, null, 2);
+            } else {
+                inputTextarea.value = '';
+            }
+            
+            // Populate state
+            if (example.state) {
+                stateTextarea.value = JSON.stringify(example.state, null, 2);
+            } else {
+                // Default empty state
+                stateTextarea.value = '{}';
+            }
+        } else {
+            // Unknown node - clear fields or use defaults
+            inputTextarea.value = '';
+            stateTextarea.value = '{}';
+        }
+    }
+
+    document.getElementById('execute-node-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const nodeId = document.getElementById('node-id').value;
+        let state = {};
+        let inputData = null;
+
+        try {
+            const stateText = document.getElementById('node-state').value.trim();
+            if (stateText) {
+                state = JSON.parse(stateText);
+            }
+        } catch (error) {
+            showToast('error', 'Invalid JSON', 'Invalid JSON in State field: ' + error.message);
+            return;
+        }
+
+        try {
+            const inputText = document.getElementById('node-input').value.trim();
+            if (inputText) {
+                inputData = JSON.parse(inputText);
+            }
+        } catch (error) {
+            showToast('error', 'Invalid JSON', 'Invalid JSON in Input Data field: ' + error.message);
+            return;
+        }
+
+        const payload = {
+            node_id: nodeId,
+            state: state,
+            input_data: inputData
+        };
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'Executing...';
+
+        const loadingToast = showToast('loading', 'Executing Node', `Executing ${nodeId}...`, 0);
+
+        fetch('/api/nodes/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            const status = response.status;
+            return response.json().then(data => ({ status, data }));
+        })
+        .then(({ status, data }) => {
+            btn.disabled = false;
+            btn.textContent = 'Execute Node';
+            hideToast(loadingToast);
+
+            if (status === 200) {
+                showToast('success', 'Node Executed', `${nodeId} executed successfully`);
+                addLog('info', `Node ${nodeId} executed. Output: ${JSON.stringify(data.output)}`);
+                
+                // Display results
+                const container = document.getElementById('node-results-container');
+                let html = `
+                    <div class="execution-card">
+                        <h5>${nodeId} <span class="workflow-status completed">completed</span></h5>
+                        <div class="execution-info" style="display: grid; gap: 0.5rem;">
+                            <div><strong>Output:</strong></div>
+                            <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.9rem;">${JSON.stringify(data.output, null, 2)}</pre>
+                            ${data.metadata ? `<div><strong>Metadata:</strong></div><pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.9rem;">${JSON.stringify(data.metadata, null, 2)}</pre>` : ''}
+                            ${data.final_state ? `<div><strong>Final State:</strong></div><pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.9rem;">${JSON.stringify(data.final_state, null, 2)}</pre>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+            } else {
+                const errorMsg = data.message || data.error || 'Unknown error';
+                showToast('error', 'Node Execution Error', errorMsg);
+                addLog('error', `Failed to execute node ${nodeId}: ${errorMsg}`);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = 'Execute Node';
+            hideToast(loadingToast);
+            const errorMsg = 'Network error: ' + error.message;
+            showToast('error', 'Node Execution Error', errorMsg);
+            console.error('Error executing node:', error);
+            addLog('error', 'Error executing node: ' + error.message);
+        });
+    });
+
+    document.getElementById('start-workflow-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const workflowId = document.getElementById('workflow-id').value;
+        const executionMode = document.getElementById('execution-mode').value;
+        const realtimeMode = document.getElementById('realtime-mode').value;
+        const enableRealtime = document.getElementById('enable-realtime').checked;
+        let initialState = {};
+
+        try {
+            const initialStateText = document.getElementById('initial-state').value.trim();
+            if (initialStateText) {
+                initialState = JSON.parse(initialStateText);
+            }
+        } catch (error) {
+            addLog('error', 'Invalid JSON in initial state: ' + error.message);
+            return;
+        }
+
+        const payload = {
+            workflow_id: workflowId,
+            initial_state: initialState,
+            background: executionMode === 'background',
+            enable_realtime_logs: enableRealtime,
+            realtime_mode: realtimeMode
+        };
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'Starting...';
+
+        const loadingToast = showToast('loading', 'Starting Workflow', `Starting ${workflowId}...`, 0);
+
+        fetch('/api/workflows/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            const status = response.status;
+            return response.json().then(data => ({ status, data }));
+        })
+        .then(({ status, data }) => {
+            btn.disabled = false;
+            btn.textContent = 'Start Workflow';
+            hideToast(loadingToast);
+
+            if (status === 200 || status === 202) {
+                if (data.execution_id) {
+                    showToast('success', 'Workflow Started', `${workflowId} started (ID: ${data.execution_id})`);
+                    addLog('info', `Workflow started: ${workflowId} (execution_id: ${data.execution_id})`);
+                    if (executionMode === 'background') {
+                        activeExecutions[data.execution_id] = {
+                            workflow_id: workflowId,
+                            status: 'running',
+                            started_at: Date.now()
+                        };
+                        updateExecutionsDisplay();
+                        startPollingStatus(data.execution_id);
+                    } else {
+                        showToast('success', 'Workflow Completed', `Workflow ${workflowId} completed successfully`);
+                        addLog('info', `Workflow completed. Final state: ${JSON.stringify(data.final_state || {})}`);
+                    }
+                } else {
+                    showToast('success', 'Workflow Completed', `Workflow ${workflowId} completed successfully`);
+                    addLog('info', `Workflow completed: ${workflowId}`);
+                }
+            } else {
+                const errorMsg = data.message || data.error || 'Unknown error';
+                showToast('error', 'Workflow Error', `Failed to start workflow: ${errorMsg}`);
+                addLog('error', `Failed to start workflow: ${errorMsg}`);
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = 'Start Workflow';
+            hideToast(loadingToast);
+            const errorMsg = 'Network error: ' + error.message;
+            showToast('error', 'Workflow Error', errorMsg);
+            console.error('Error starting workflow:', error);
+            addLog('error', 'Error starting workflow: ' + error.message);
+        });
+    });
+
+    function startPollingStatus(executionId) {
+        const interval = setInterval(() => {
+            fetch(`/api/workflows/status/${executionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'stopped' || data.status === 'error' || !data.running) {
+                        clearInterval(interval);
+                        if (activeExecutions[executionId]) {
+                            activeExecutions[executionId].status = data.status;
+                            updateExecutionsDisplay();
+                        }
+                    } else if (activeExecutions[executionId]) {
+                        activeExecutions[executionId].status = data.status;
+                        updateExecutionsDisplay();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error polling status:', error);
+                    clearInterval(interval);
+                });
+        }, 2000);
+    }
+
+    function stopWorkflow(executionId) {
+        const loadingToast = showToast('loading', 'Stopping Workflow', 'Please wait...', 0);
+
+        fetch(`/api/workflows/stop/${executionId}`, {
+            method: 'POST'
+        })
+        .then(response => {
+            const status = response.status;
+            return response.json().then(data => ({ status, data }));
+        })
+        .then(({ status, data }) => {
+            hideToast(loadingToast);
+            
+            if (status === 200) {
+                showToast('success', 'Workflow Stopped', `Workflow ${executionId} stopped successfully`);
+                addLog('info', `Workflow stopped: ${executionId}`);
+                delete activeExecutions[executionId];
+                updateExecutionsDisplay();
+            } else {
+                const errorMsg = data.message || data.error || 'Unknown error';
+                showToast('error', 'Error Stopping Workflow', errorMsg);
+                addLog('error', `Failed to stop workflow: ${errorMsg}`);
+            }
+        })
+        .catch(error => {
+            hideToast(loadingToast);
+            const errorMsg = 'Network error: ' + error.message;
+            showToast('error', 'Error Stopping Workflow', errorMsg);
+            console.error('Error stopping workflow:', error);
+            addLog('error', 'Error stopping workflow: ' + error.message);
+        });
+    }
+
+    function updateExecutionsDisplay() {
+        const container = document.getElementById('executions-container');
+        const executionIds = Object.keys(activeExecutions);
+        
+        if (executionIds.length === 0) {
+            container.innerHTML = '<p style="color: #666;">No active executions</p>';
+            return;
+        }
+
+        let html = '';
+        executionIds.forEach(executionId => {
+            const exec = activeExecutions[executionId];
+            html += `
+                <div class="execution-card">
+                    <h5>${exec.workflow_id} <span class="workflow-status ${exec.status}">${exec.status}</span></h5>
+                    <div class="execution-info">
+                        <div><strong>Execution ID:</strong> ${executionId}</div>
+                        <div><strong>Status:</strong> ${exec.status}</div>
+                        <div>
+                            <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;"
+                                    onclick="stopWorkflow('${executionId}')">Stop</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // ========== Real-time Logs ==========
+    function connectSSE() {
+        const statusEl = document.getElementById('sse-status-text');
+        statusEl.textContent = 'Connecting...';
+        statusEl.className = 'status-connecting';
+
+        try {
+            eventSource = new EventSource('/events');
+            
+            eventSource.onopen = function() {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status-connected';
+                addLog('info', 'SSE connection opened');
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'connected') {
+                        // Initial connection message
+                        return;
+                    }
+                    addLog('info', `SSE: ${data.type || 'event'}`, data);
+                } catch (e) {
+                    addLog('info', 'SSE: ' + event.data);
+                }
+            };
+
+            eventSource.onerror = function(event) {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status-disconnected';
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    addLog('error', 'SSE connection closed');
+                    setTimeout(connectSSE, 3000);
+                }
+            };
+        } catch (e) {
+            statusEl.textContent = 'Error';
+            statusEl.className = 'status-disconnected';
+            addLog('error', 'Failed to create SSE connection: ' + e.message);
+        }
+    }
+
+    function initSocketIOHandlers() {
+        if (typeof io === 'undefined' || !window.seedxSocket) {
+            setTimeout(initSocketIOHandlers, 200);
+            return;
+        }
+
+        const socket = window.seedxSocket;
+        const statusEl = document.getElementById('socket-status-text');
+        
+        socket.on('connect', function() {
+            statusEl.textContent = 'Connected';
+            statusEl.className = 'status-connected';
+            addLog('info', 'Socket.IO connected');
+        });
+
+        socket.on('disconnect', function() {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status-disconnected';
+            addLog('info', 'Socket.IO disconnected');
+        });
+
+        socket.on('execution_log', function(data) {
+            addLog('info', `[Workflow] ${data.message || JSON.stringify(data)}`, data);
+        });
+
+        socket.on('workflow_event', function(data) {
+            addLog('info', `[Workflow Event] ${data.type || JSON.stringify(data)}`, data);
+        });
+
+        socket.on('state_change', function(data) {
+            if (data.active_users_count !== undefined) {
+                document.getElementById('active-users-count').textContent = data.active_users_count;
+            }
+            addLog('info', `[State] ${data.type || JSON.stringify(data)}`, data);
+        });
+
+        socket.on('user_event', function(data) {
+            addLog('info', `[User Event] ${JSON.stringify(data)}`, data);
+        });
+    }
+
+    function addLog(level, message, data = null) {
+        const logContainer = document.getElementById('events-log');
+        
+        // Remove "Waiting for events..." message
+        if (logContainer.children.length === 1 && logContainer.children[0].tagName === 'P') {
+            logContainer.innerHTML = '';
+        }
+
+        const entry = document.createElement('div');
+        entry.className = 'event-entry';
+        
+        const timestamp = new Date().toLocaleTimeString();
+        const dataStr = data ? JSON.stringify(data, null, 2) : '';
+        
+        entry.innerHTML = `
+            <span class="event-time">${timestamp}</span>
+            <span class="event-type">${level.toUpperCase()}</span>
+            <span class="event-data">${message}${dataStr ? '\n' + dataStr : ''}</span>
+        `;
+
+        logContainer.insertBefore(entry, logContainer.firstChild);
+
+        // Limit to 100 entries
+        while (logContainer.children.length > 100) {
+            logContainer.removeChild(logContainer.lastChild);
+        }
+
+        // Auto-scroll
+        if (document.getElementById('auto-scroll').checked) {
+            logContainer.scrollTop = 0;
+        }
+    }
+
+    function clearLogs() {
+        const logContainer = document.getElementById('events-log');
+        logContainer.innerHTML = '<p style="color: #858585;">Logs cleared</p>';
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (eventSource) {
+            eventSource.close();
+        }
+    });
+</script>
+{% endblock %}

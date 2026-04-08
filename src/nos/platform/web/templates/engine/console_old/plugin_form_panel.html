@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 0; margin: 0; min-height: 100vh; background: var(--app-bg); }
+        .panel-wrap {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 0.75rem 1rem 1rem;
+            box-sizing: border-box;
+        }
+        .panel-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--term-border, #333);
+        }
+        .panel-tabs button {
+            padding: 0.5rem 1.25rem;
+            background: var(--term-panel, #1a1a1a);
+            border: 1px solid var(--term-border, #333);
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 2px;
+            color: var(--term-muted, #858585);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .panel-tabs button:hover:not(.active) {
+            color: var(--term-fg, #d4d4d4);
+            background: rgba(78, 201, 176, 0.08);
+        }
+        .panel-tabs button.active {
+            background: var(--term-bg, #0c0c0c);
+            color: var(--term-accent, #4ec9b0);
+            border-color: var(--term-accent);
+            margin-bottom: -1px;
+            padding-bottom: calc(0.5rem + 1px);
+            border-bottom: 1px solid var(--term-bg, #0c0c0c);
+        }
+        .panel-tab {
+            display: none;
+            border: 1px solid var(--term-border, #333);
+            border-top: none;
+            padding: 1rem 0 0;
+        }
+        .panel-tab.active { display: block; }
+        #tab-register { width: 100%; min-width: 0; box-sizing: border-box; }
+        #register-form-container,
+        .register-form {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        #plugin-form-loader {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .register-form label { display: block; margin-top: 0.75rem; color: var(--term-accent); }
+        .register-form input, .register-form select { width: 100%; max-width: 100%; padding: 0.4rem; margin-top: 0.2rem; background: #0c0c0c; border: 1px solid #333; color: #ccc; font-family: inherit; box-sizing: border-box; }
+        .register-form input[readonly] { color: var(--term-muted); border-color: #2a2a2a; }
+        .register-form button[type="submit"] { margin-top: 1rem; padding: 0.5rem 1rem; background: var(--term-accent); color: #0c0c0c; border: none; cursor: pointer; font-family: inherit; }
+        .dev-toolbar {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 0.5rem; padding: 0.35rem 0;
+            border-bottom: 1px solid var(--term-border, #333);
+        }
+        .dev-toolbar button {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.35rem 0.6rem;
+            background: var(--term-bg); border: 1px solid var(--term-accent);
+            color: var(--term-accent); cursor: pointer; font-family: inherit; font-size: 0.9rem;
+        }
+        .dev-toolbar button:hover { background: rgba(78, 201, 176, 0.15); }
+        .dev-toolbar button.primary { background: var(--term-accent); color: #0c0c0c; }
+        .dev-toolbar button.active { background: rgba(78, 201, 176, 0.25); }
+        .dev-toolbar button#btn-save-file.saved { color: #7fbf7f; }
+        .code-wrap {
+            border: 1px solid var(--term-border);
+            background: #0c0c0c;
+            min-height: 320px;
+            position: relative;
+        }
+        #plugin-code-editor {
+            width: 100%; min-height: 300px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+        #plugin-code-editor .cm-editor { min-height: 300px; height: 100%; }
+        #plugin-code-editor .cm-scroller { font-family: inherit; font-size: 13px; line-height: 1.45; }
+        #plugin-code-editor .cm-content { padding: 0.75rem; }
+        #plugin-code-editor .cm-gutters { border-right: 1px solid var(--term-border, #333); background: rgba(0,0,0,0.2); }
+        #plugin-code-editor[data-readonly="true"] .cm-content { opacity: 0.85; cursor: not-allowed; }
+        .workflow-console-info {
+            width: 100%;
+            min-height: 300px;
+            padding: 0.75rem;
+            box-sizing: border-box;
+        }
+        #workflow-console-pre {
+            margin: 0;
+            padding: 0.75rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--term-fg, #d4d4d4);
+            background: transparent;
+            border: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .toast { position: fixed; top: 3.5rem; left: 50%; transform: translateX(-50%); padding: 0.65rem 1.25rem; border-radius: 4px; max-width: 420px; z-index: 9999; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.4); text-align: center; }
+        .toast.success { background: #2d5a2d; color: #b5cea8; }
+        .toast.error { background: #5a2d2d; color: #f48771; }
+        .toast.info { background: #1a3a5a; color: #9cdcfe; }
+        .navbar-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem; color: var(--term-muted, #888);
+            background: var(--term-bg, #0c0c0c);
+            border-bottom: 1px solid rgba(78, 201, 176, 0.2);
+        }
+        .navbar-header .current { color: var(--term-accent, #4ec9b0); font-weight: 500; }
+        .navbar-header .spacer { flex: 1; }
+        .navbar-header .btn-close {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px solid var(--term-border, #333);
+            color: var(--term-muted, #888);
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            font-family: inherit;
+        }
+        .navbar-header .btn-close:hover { color: var(--term-accent); border-color: var(--term-accent); }
+        body { padding-top: 2.75rem; }
+    </style>
+    <script src="{{ url_for('static', filename='js/index.86a5bf44.umd.js') }}"></script>
+</head>
+<body>
+    <header class="navbar-header" role="banner">
+        <nav aria-label="Breadcrumb">
+            <span class="current" id="breadcrumb-text">{{ label_registry }}: </span>
+        </nav>
+        <span class="spacer"></span>
+        <button type="button" class="btn-close" id="btn-close-panel" title="Close" aria-label="Close">&#215;</button>
+    </header>
+    <div class="panel-wrap">
+        <div class="panel-tabs">
+            <button type="button" data-tab="register" class="active">Registry</button>
+            <button type="button" data-tab="developer">Console</button>
+        </div>
+        <div id="tab-register" class="panel-tab active">
+            <div id="register-form-container" class="register-form">
+                <wx-form-loader id="plugin-form-loader" class="theme-dark" from="{{ form_schema_only_url }}" row-key="{{ row_key }}" form-stylesheet-href="{{ url_for('static', filename='css/app-theme.css') }}" post-message></wx-form-loader>
+            </div>
+        </div>
+        <div id="tab-developer" class="panel-tab">
+            <div class="dev-toolbar">
+                <button type="button" id="btn-edit-toggle" title="Abilita modifica" aria-label="Modifica">&#9998;</button>
+                <button type="button" id="btn-save-file" title="Saved" aria-label="Saved">&#10003;</button>
+                <button type="button" id="btn-run" class="primary" title="Apri in Engine (parametri e avvio)" aria-label="Apri in Engine">&#9654;</button>
+            </div>
+            <div class="code-wrap">
+                <div id="plugin-code-editor" data-readonly="true"></div>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+    (async function() {
+        var editor;
+        var bundleUrl = "{{ url_for('static', filename='js/codemirror-console.bundle.js') }}";
+        try {
+            var m = await import(bundleUrl);
+            var createPythonEditor = m.createPythonEditor;
+            var container = document.getElementById('plugin-code-editor');
+            editor = createPythonEditor(container, {
+                onChange: function() { window.dispatchEvent(new CustomEvent('plugin-editor-change')); }
+            });
+        } catch (e) {
+            console.error('CodeMirror load failed:', e);
+            var container = document.getElementById('plugin-code-editor');
+            var fallback = document.createElement('textarea');
+            fallback.id = 'plugin-code-editor-fallback';
+            fallback.placeholder = '# Codice Python del modulo...';
+            fallback.style.cssText = 'width:100%;min-height:300px;padding:0.75rem;font-family:Consolas,Monaco,monospace;font-size:13px;background:#0a0e17;border:1px solid rgba(0,212,255,0.2);color:#e2e8f0;resize:vertical;box-sizing:border-box;';
+            container.appendChild(fallback);
+            fallback.addEventListener('input', function() { window.dispatchEvent(new CustomEvent('plugin-editor-change')); });
+            editor = fallback;
+        }
+        window.__pluginCodeEditor = editor;
+        window.dispatchEvent(new Event('codemirror-ready'));
+    })();
+    </script>
+    <script>
+(function() {
+    var CONFIG = {
+        plugin_type: "{{ plugin_type }}",
+        row_key: "{{ row_key }}",
+        record_id: "{{ record_id|e }}".trim() || (function() {
+            var p = new URLSearchParams(window.location.search);
+            return (p.get('row_key') || p.get('{{ row_key }}') || '').trim();
+        })(),
+        api_base: "{{ api_base }}",
+        form_schema_only_url: "{{ form_schema_only_url }}",
+        label_registry: "{{ label_registry }}",
+        label_singular: "{{ label_singular }}",
+        engine_type: "{{ 'nd' if plugin_type == 'node' else 'wk' }}"
+    };
+
+    var editRecordId = CONFIG.record_id;
+    var breadcrumbEl = document.getElementById('breadcrumb-text');
+    if (breadcrumbEl) breadcrumbEl.textContent = CONFIG.label_registry + ': ' + (editRecordId ? editRecordId : 'new ' + CONFIG.label_singular.toLowerCase());
+
+    var registerContainer = document.getElementById('register-form-container');
+    var currentNodeData = null;
+    var registrationStatus = '';
+    var userEditEnabled = false;
+    var editor = null;
+
+    function showTab(name) {
+        document.querySelectorAll('.panel-tab').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelectorAll('.panel-tabs button').forEach(function(b) { b.classList.remove('active'); });
+        var tab = document.getElementById('tab-' + name);
+        var btn = document.querySelector('.panel-tabs button[data-tab="' + name + '"]');
+        if (tab) tab.classList.add('active');
+        if (btn) btn.classList.add('active');
+    }
+    document.querySelectorAll('.panel-tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() { showTab(btn.getAttribute('data-tab')); });
+    });
+
+    showTab('register');
+    setTimeout(function() { showTab('register'); }, 150);
+    setTimeout(function() { showTab('register'); }, 500);
+
+    var closeConfirmMessage = 'Close Developer console? Do you want to save your latest changes?';
+    var btnClosePanel = document.getElementById('btn-close-panel');
+    if (btnClosePanel) {
+        btnClosePanel.addEventListener('click', function() {
+            if (!confirm(closeConfirmMessage)) return;
+            window.close();
+        });
+    }
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = closeConfirmMessage;
+        return closeConfirmMessage;
+    });
+
+    function toast(message, type) {
+        type = type || 'success';
+        var el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.textContent = message;
+        document.body.appendChild(el);
+        setTimeout(function() { el.remove(); }, 4500);
+    }
+
+    function getForm() {
+        var loader = document.getElementById('plugin-form-loader');
+        var form = registerContainer.querySelector('form');
+        if (!form && loader && loader.shadowRoot) form = loader.shadowRoot.querySelector('form');
+        return form;
+    }
+
+    function loadAndRunFormLoader() {
+        var loader = document.getElementById('plugin-form-loader');
+        if (!loader || typeof loader.runLoadPipeline !== 'function') return;
+        var baseUrl = (CONFIG.form_schema_only_url || CONFIG.api_base || '').trim().replace(/\/+$/, '');
+        var url = editRecordId
+            ? (CONFIG.api_base + '/' + encodeURIComponent(editRecordId))
+            : baseUrl;
+        loader.from = url;
+        loader.runLoadPipeline();
+    }
+
+    function handleFormSubmit(e) {
+        var form = e.target;
+        if (form.tagName !== 'FORM') return;
+        var fd = new FormData(form);
+        var data = {};
+        fd.forEach(function(v, k) { data[k] = v; });
+        var idVal = (data[CONFIG.row_key] || '').trim();
+        if (!idVal) {
+            toast(CONFIG.row_key + ' obbligatorio', 'error');
+            return;
+        }
+        fetch(CONFIG.api_base + '/' + encodeURIComponent(idVal))
+            .then(function(rExist) {
+                if (rExist.ok) {
+                    return rExist.json().then(function(res) {
+                        var existing = res.form_data || (res.data && res.data[0]) || (res.fields && res.fields.reduce(function(acc, f) { acc[f.name] = f.value != null ? f.value : ''; return acc; }, {})) || res;
+                        var updatePayload = {};
+                        updatePayload[CONFIG.row_key] = data[CONFIG.row_key];
+                        if (CONFIG.plugin_type === 'node') {
+                            updatePayload.class_name = data.class_name;
+                            updatePayload.module_path = data.module_path;
+                            updatePayload.name = data.name;
+                            updatePayload.registration_status = existing.registration_status || 'Error';
+                        } else {
+                            updatePayload.class_name = data.class_name;
+                            updatePayload.module_path = data.module_path;
+                            updatePayload.name = data.name;
+                            if (existing.registration_status !== undefined) updatePayload.registration_status = existing.registration_status;
+                        }
+                        var updateUrl = CONFIG.plugin_type === 'workflow'
+                            ? CONFIG.api_base + '/update/' + encodeURIComponent(idVal)
+                            : CONFIG.api_base + '/update';
+                        return fetch(updateUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatePayload)
+                        }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); });
+                    });
+                }
+                if (rExist.status === 404) {
+                    var createPayload = {};
+                    createPayload[CONFIG.row_key] = data[CONFIG.row_key];
+                    createPayload.class_name = data.class_name;
+                    createPayload.module_path = data.module_path;
+                    createPayload.name = data.name || '';
+                    return fetch(CONFIG.api_base + '/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(createPayload)
+                    }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); });
+                }
+                return rExist.json().then(function(d) { return { ok: false, data: d }; });
+            })
+            .then(function(res) {
+                if (res.ok) {
+                    currentNodeData = res.data;
+                    registrationStatus = (res.data && res.data.registration_status) ? (res.data.registration_status || '').trim() : '';
+                    if (typeof applyEditorEditability === 'function') applyEditorEditability();
+                    toast(CONFIG.label_singular + ' salvato: ' + res.data[CONFIG.row_key]);
+                } else {
+                    toast((res.data && res.data.message) || res.data.error || 'Operazione fallita', 'error');
+                }
+            })
+            .catch(function(err) {
+                toast('Error: ' + err.message, 'error');
+            });
+    }
+
+    document.addEventListener('submit', function(e) {
+        if (e.target.tagName !== 'FORM') return;
+        var loader = document.getElementById('plugin-form-loader');
+        var inContainer = registerContainer.contains(e.target);
+        var inLoaderShadow = loader && loader.shadowRoot && loader.shadowRoot.contains(e.target);
+        if (inContainer || inLoaderShadow) {
+            e.preventDefault();
+            handleFormSubmit(e);
+        }
+    }, true);
+
+    // --- Console unificata: CodeMirror, load/save code, run (node e workflow) ---
+    var btnSaveFile = document.getElementById('btn-save-file');
+    var btnRun = document.getElementById('btn-run');
+    var btnEditToggle = document.getElementById('btn-edit-toggle');
+    var editorDirty = false;
+    var lastSavedValue = '';
+    var ICON_SAVE = '\u{1F4BE}';
+    var ICON_SAVED = '\u2713';
+
+    function updateSaveButtonIcon() {
+        if (!btnSaveFile) return;
+        if (editorDirty) {
+            btnSaveFile.textContent = ICON_SAVE;
+            btnSaveFile.title = 'Save (unsaved changes)';
+            btnSaveFile.setAttribute('aria-label', 'Save');
+            btnSaveFile.classList.remove('saved');
+        } else {
+            btnSaveFile.textContent = ICON_SAVED;
+            btnSaveFile.title = 'Saved';
+            btnSaveFile.setAttribute('aria-label', 'Saved');
+            btnSaveFile.classList.add('saved');
+        }
+    }
+
+    function setEditorSavedState() {
+        editorDirty = false;
+        if (window.__pluginCodeEditor && window.__pluginCodeEditor.value != null)
+            lastSavedValue = String(window.__pluginCodeEditor.value);
+        updateSaveButtonIcon();
+    }
+
+    window.addEventListener('plugin-editor-change', function() {
+        editorDirty = true;
+        updateSaveButtonIcon();
+    });
+
+    function applyEditorEditability() {
+        var isEditMode = !!editRecordId;
+        var notOk = (registrationStatus || '').toLowerCase() !== 'ok';
+        if (!window.__pluginCodeEditor) return;
+        editor = window.__pluginCodeEditor;
+        if (isEditMode && notOk) {
+            editor.readOnly = true;
+            editor.title = 'Codice non modificabile: stato registrazione \u2260 ok';
+            var msg = 'Stato registrazione: ' + (registrationStatus || '—') + '. ';
+            if ((registrationStatus || '').toLowerCase() === 'pub') {
+                msg += 'Per modificare il codice regredire a \'ok\' dalla console.';
+            } else {
+                msg += 'Necessario registrare il nodo (tab Register).';
+            }
+            toast(msg, 'info');
+        } else {
+            editor.readOnly = !userEditEnabled;
+            editor.title = userEditEnabled ? '' : 'Clicca l\'icona matita per abilitare la modifica';
+        }
+        updateEditToggleButton();
+    }
+
+    function updateEditToggleButton() {
+        if (!btnEditToggle) return;
+        var canEdit = (registrationStatus || '').toLowerCase() === 'ok' || !editRecordId;
+        var editable = canEdit && userEditEnabled;
+        btnEditToggle.title = editable ? 'Disabilita modifica' : 'Abilita modifica';
+        btnEditToggle.setAttribute('aria-label', editable ? 'Blocca modifica' : 'Modifica');
+        btnEditToggle.textContent = editable ? '\u{1F512}' : '\u270F';
+        if (editable) btnEditToggle.classList.add('active'); else btnEditToggle.classList.remove('active');
+    }
+
+    var nodeTemplate = '# Template minimo nodo\nfrom ....base import Node, NodeOutput\n\nclass MyNode(Node):\n    def __init__(self, node_id: str = "my_node", name: str = None):\n        super().__init__(node_id, name or "My Node")\n\n    def _do_execute(self, state_dict: dict, params_dict: dict) -> NodeOutput:\n        return NodeOutput(output={"result": "ok"}, metadata={})\n';
+    var workflowTemplate = '# Template minimo workflow\nfrom ...base import Workflow\n\nclass MyWorkflow(Workflow):\n    def __init__(self, workflow_id: str = "my_workflow", name: str = None):\n        super().__init__(workflow_id, name or "My Workflow")\n\n    def define(self):\n        pass\n';
+
+    if (btnEditToggle) {
+        btnEditToggle.addEventListener('click', function() {
+            var notOk = (registrationStatus || '').toLowerCase() !== 'ok';
+            if (editRecordId && notOk) {
+                toast('Registra il nodo (tab Register) con stato \'ok\' per poter modificare il codice.', 'info');
+                return;
+            }
+            userEditEnabled = !userEditEnabled;
+            applyEditorEditability();
+        });
+    }
+
+    function getDefaultTemplate() {
+        return CONFIG.plugin_type === 'workflow' ? workflowTemplate : nodeTemplate;
+    }
+
+    function loadNodeDataAndEditor() {
+        if (!editRecordId) {
+            currentNodeData = null;
+            registrationStatus = '';
+            if (window.__pluginCodeEditor) {
+                window.__pluginCodeEditor.value = getDefaultTemplate();
+                if (typeof setEditorSavedState === 'function') setEditorSavedState();
+            }
+            applyEditorEditability();
+            return;
+        }
+        fetch(CONFIG.api_base + '/' + encodeURIComponent(editRecordId))
+            .then(function(r) {
+                if (!r.ok) {
+                    if (r.status === 404) {
+                        currentNodeData = null;
+                        registrationStatus = '';
+                        if (window.__pluginCodeEditor) {
+                            window.__pluginCodeEditor.value = getDefaultTemplate();
+                            if (typeof setEditorSavedState === 'function') setEditorSavedState();
+                        }
+                        applyEditorEditability();
+                        return null;
+                    }
+                    return r.json().then(function(d) { throw new Error(d.message || d.error || 'Errore'); });
+                }
+                return r.json();
+            })
+            .then(function(data) {
+                if (!data) return;
+                var nodeRecord = data.form_data || (data.data && data.data[0]) || (data.fields && data.fields.reduce(function(acc, f) { acc[f.name] = f.value != null ? f.value : ''; return acc; }, {})) || data;
+                currentNodeData = nodeRecord;
+                registrationStatus = (nodeRecord.registration_status || '').trim();
+                applyEditorEditability();
+                var mp = (nodeRecord.module_path || '').trim();
+                if (mp && window.__pluginCodeEditor) {
+                    var loadCodeUrl = CONFIG.plugin_type === 'node'
+                        ? '/api/node/load-code?node_id=' + encodeURIComponent(editRecordId) + '&module_path=' + encodeURIComponent(mp)
+                        : '/api/workflow/load-code?workflow_id=' + encodeURIComponent(editRecordId) + '&module_path=' + encodeURIComponent(mp);
+                    fetch(loadCodeUrl)
+                        .then(function(r) {
+                            if (r.ok) return r.json();
+                            return r.json().then(function(d) {
+                                toast((d && d.message) || (d && d.error) || 'Load failed', 'error');
+                                return null;
+                            }).catch(function() { return null; });
+                        })
+                        .then(function(res) {
+                            if (res && res.content && window.__pluginCodeEditor) {
+                                window.__pluginCodeEditor.value = res.content;
+                                if (typeof setEditorSavedState === 'function') setEditorSavedState();
+                            }
+                        })
+                        .catch(function(err) { toast(err && err.message ? err.message : 'Load failed', 'error'); });
+                } else if (window.__pluginCodeEditor) {
+                    window.__pluginCodeEditor.value = getDefaultTemplate();
+                    if (typeof setEditorSavedState === 'function') setEditorSavedState();
+                }
+            })
+            .catch(function(err) { toast('Errore: ' + err.message, 'error'); });
+    }
+
+    if (btnSaveFile) {
+        btnSaveFile.addEventListener('click', function() {
+            try {
+                editor = window.__pluginCodeEditor;
+                if (!editor) {
+                    toast('Editor not ready. Please wait a moment and try again.', 'error');
+                    return;
+                }
+                var content = (editor.value != null ? String(editor.value) : '').trim();
+                if (!content) {
+                    toast('Inserisci del codice nell\'editor.', 'error');
+                    return;
+                }
+                var form = getForm();
+                if (!form) {
+                    toast('Form not loaded. Open the Registry tab first, then try Save again.', 'error');
+                    return;
+                }
+                var mp = (form.querySelector('input[name="module_path"]') || {}).value;
+                var recordId = (form.querySelector('input[name="' + CONFIG.row_key + '"]') || {}).value;
+                var className = (form.querySelector('input[name="class_name"]') || {}).value;
+                mp = (mp || '').trim();
+                recordId = (recordId || '').trim();
+                className = (className || '').trim();
+                if (!mp || !recordId || !className) {
+                    toast('Fill ' + CONFIG.row_key + ', module_path and class_name in the Registry tab.', 'error');
+                    return;
+                }
+                toast('Saving...', 'info');
+                var saveUrl = CONFIG.plugin_type === 'node' ? '/api/node/save-code' : '/api/workflow/save-code';
+                var payload = { module_path: mp, content: content, class_name: className };
+                payload[CONFIG.row_key] = recordId;
+                fetch(saveUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(function(r) {
+                    try {
+                        return r.json().then(function(d) { return { ok: r.ok, data: d }; });
+                    } catch (e) {
+                        return { ok: false, data: { message: 'Invalid response' } };
+                    }
+                })
+                .then(function(res) {
+                    if (res.ok) {
+                        if (res.data && res.data.registration_status) registrationStatus = res.data.registration_status;
+                        if (typeof setEditorSavedState === 'function') setEditorSavedState();
+                        if (typeof applyEditorEditability === 'function') applyEditorEditability();
+                        var msg = res.data.message || 'File saved';
+                        if (res.data.registration_status === 'OK') msg += '. Registration: OK';
+                        else if (res.data.registration_error) msg += '. Registration: ' + res.data.registration_error;
+                        toast(msg, res.data.registration_status === 'OK' ? 'success' : 'info');
+                    } else {
+                        toast((res.data && res.data.message) || res.data.error || 'Save failed', 'error');
+                    }
+                })
+                .catch(function(err) {
+                    toast('Error: ' + (err && err.message ? err.message : 'Save failed'), 'error');
+                });
+            } catch (err) {
+                toast('Error: ' + (err && err.message ? err.message : 'Save failed'), 'error');
+            }
+        });
+    }
+
+    if (btnRun) {
+        btnRun.addEventListener('click', function() {
+            var recordId = editRecordId;
+            if (!recordId) {
+                var form = getForm();
+                if (form) recordId = (form.querySelector('input[name="' + CONFIG.row_key + '"]') || {}).value;
+                recordId = (recordId || '').trim();
+            }
+            if (!recordId) {
+                toast('Salva dal tab Register (o apri un record esistente) per eseguirlo.', 'error');
+                return;
+            }
+            window.open('/engine/run?type=' + CONFIG.engine_type + '&id=' + encodeURIComponent(recordId), '_blank');
+        });
+    }
+
+    function runRestOfInit() {
+        loadNodeDataAndEditor();
+        loadAndRunFormLoader();
+    }
+
+    if (window.__pluginCodeEditor) {
+        runRestOfInit();
+    } else {
+        window.addEventListener('codemirror-ready', function onReady() {
+            window.removeEventListener('codemirror-ready', onReady);
+            runRestOfInit();
+        });
+    }
+})();
+    </script>
+</body>
+</html>

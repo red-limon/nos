@@ -1,0 +1,5 @@
+# Include static files and templates in package distribution
+include README.md
+include pyproject.toml
+recursive-include src/nos/platform/web/static *
+recursive-include src/nos/platform/web/templates *

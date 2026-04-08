@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    {% include 'includes/theme_system.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <!-- Explorer Offcanvas -->
+    <div class="explorer-backdrop" id="explorer-backdrop"></div>
+    <aside class="explorer-offcanvas" id="explorer-offcanvas">
+        <div class="explorer-header">
+            <span class="explorer-title">Explorer</span>
+            <button class="explorer-close" id="explorer-close" title="Close">&times;</button>
+        </div>
+        <div class="explorer-content">
+            <!-- File Tree Panel -->
+            <div class="explorer-panel" id="explorer-files-panel" style="flex: 1;">
+                <div class="explorer-panel-header" data-panel="files">
+                    <span class="collapse-icon">▼</span>
+                    <span>Plugins</span>
+                </div>
+                <div class="explorer-panel-content">
+                    <div class="file-tree" id="file-tree">
+                        <div class="tree-loading">Loading files</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resizer -->
+            <div class="explorer-resizer" id="explorer-resizer"></div>
+            
+            <!-- Outline Panel -->
+            <div class="explorer-panel" id="explorer-outline-panel" style="flex: 1;">
+                <div class="explorer-panel-header" data-panel="outline">
+                    <span class="collapse-icon">▼</span>
+                    <span>Outline</span>
+                </div>
+                <div class="explorer-panel-content">
+                    <div class="outline-tree" id="outline-tree">
+                        <div class="outline-empty">Open a file to see its outline</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="console-container">
+        <!-- IDE Menu Bar -->
+        <header class="console-header">
+            <!-- Left Section: Logo + Menu -->
+            <div class="header-left">
+                <!-- Logo -->
+                <div class="header-logo">
+                    <svg class="logo-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <g transform="rotate(-28 24 24)">
+                            <line x1="12" y1="12" x2="36" y2="12"/>
+                            <line x1="12" y1="18" x2="36" y2="18"/>
+                            <line x1="12" y1="24" x2="36" y2="24"/>
+                            <line x1="12" y1="30" x2="36" y2="30"/>
+                            <line x1="12" y1="36" x2="36" y2="36"/>
+                            <line x1="12" y1="12" x2="12" y2="36"/>
+                            <line x1="18" y1="12" x2="18" y2="36"/>
+                            <line x1="24" y1="12" x2="24" y2="36"/>
+                            <line x1="30" y1="12" x2="30" y2="36"/>
+                            <line x1="36" y1="12" x2="36" y2="36"/>
+                            <line x1="12" y1="18" x2="18" y2="12"/>
+                            <line x1="24" y1="18" x2="30" y2="12"/>
+                            <path fill="none" stroke-linecap="round" d="M 12 12 L 36 36"/>
+                            <path fill="none" stroke-linecap="round" d="M 36 12 L 12 36"/>
+                            <line x1="18" y1="24" x2="24" y2="18"/>
+                            <line x1="30" y1="24" x2="24" y2="30"/>
+                            <circle cx="12" cy="12" r="1.2"/>
+                            <circle cx="24" cy="12" r="1.2"/>
+                            <circle cx="36" cy="12" r="1.2"/>
+                            <circle cx="12" cy="24" r="1.2"/>
+                            <circle cx="24" cy="24" r="1.2"/>
+                            <circle cx="36" cy="24" r="1.2"/>
+                            <circle cx="12" cy="36" r="1.2"/>
+                            <circle cx="24" cy="36" r="1.2"/>
+                            <circle cx="36" cy="36" r="1.2"/>
+                        </g>
+                    </svg>
+                </div>
+                <nav class="menu-bar">
+                <!-- Console Menu -->
+                <div class="menu-item" data-menu="console">
+                    <button class="menu-trigger" type="button">Console</button>
+                    <div class="menu-dropdown">
+                        <button class="menu-option" id="menu-explorer" type="button">
+                            <span>Explorer</span>
+                            <span class="shortcut">Ctrl+E</span>
+                            <span class="toggle-check">✓</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-reconnect" type="button">
+                            <span>Reconnect</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-new-window" type="button">
+                            <span>New Window</span>
+                            <span class="shortcut">Ctrl+Shift+N</span>
+                        </button>
+                        <button class="menu-option" id="menu-close" type="button">
+                            <span>Close</span>
+                            <span class="shortcut">Ctrl+W</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Preferences Menu -->
+                <div class="menu-item" data-menu="preferences">
+                    <button class="menu-trigger" type="button">Preferences</button>
+                    <div class="menu-dropdown">
+                        <div class="menu-option has-submenu">
+                            <span>Theme</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <button class="menu-option active" data-theme="default" type="button">
+                                    <span>Default</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <div class="menu-separator"></div>
+                                <button class="menu-option" data-theme="vs-dark" type="button">
+                                    <span>Dark (Visual Studio)</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-theme="abyss" type="button">
+                                    <span>Abyss</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-theme="tomorrow-blue" type="button">
+                                    <span>Tomorrow Night Blue</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-theme="cursor-dark" type="button">
+                                    <span>Cursor Dark</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <div class="menu-separator"></div>
+                                <button class="menu-option" data-theme="vs-light" type="button">
+                                    <span>Light (Visual Studio)</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-theme="cursor-light" type="button">
+                                    <span>Cursor Light</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="menu-option has-submenu">
+                            <span>Run Mode</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <button class="menu-option active" data-runmode="direct" type="button">
+                                    <span>⚡ Direct</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-runmode="registry" type="button">
+                                    <span>📋 Registry</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="menu-option has-submenu">
+                            <span>Output Mode</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <button class="menu-option active" data-outputmode="debug" type="button">
+                                    <span>🔧 Debug</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                                <button class="menu-option" data-outputmode="trace" type="button">
+                                    <span>📜 Trace</span>
+                                    <span class="toggle-indicator"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-split-view" type="button">
+                            <span>Split View</span>
+                            <span class="shortcut">Ctrl+\</span>
+                        </button>
+                        <button class="menu-option" id="menu-compact-view" type="button">
+                            <span>Compact View</span>
+                            <span class="toggle-indicator"></span>
+                        </button>
+                        <button class="menu-option" id="menu-autosave" type="button">
+                            <span>Autosave</span>
+                            <span class="toggle-indicator"></span>
+                        </button>
+                    </div>
+                </div>
+                </nav>
+            </div>
+            
+            <!-- Status (right side) -->
+            <div class="header-status">
+                <div class="status-connection">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Disconnected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <nav class="panel-tabs">
+            <button type="button" data-tab="console" class="active">
+                <span class="tab-icon">&gt;_</span>
+                <span>Command Line</span>
+            </button>
+            <button type="button" data-tab="code">
+                <span class="tab-icon">⟨⟩</span>
+                <span>Code</span>
+            </button>
+        </nav>
+
+        <!-- Tab 1: Console -->
+        <div id="tab-console" class="panel-tab active">
+            <!-- Console Toolbar -->
+            <div class="tab-toolbar">
+                <button class="toolbar-btn" id="btn-clear" title="Clear console">🗑</button>
+                <button class="toolbar-btn active" id="btn-scroll" title="Toggle auto-scroll">↓</button>
+                <div class="filter-dropdown-container">
+                    <button class="toolbar-btn" id="btn-filter" title="Filter logs">⚙</button>
+                    <div class="filter-dropdown" id="filter-dropdown">
+                        <label class="filter-option" data-level="debug">
+                            <input type="checkbox" data-level="debug" checked>
+                            <span class="filter-label">Debug</span>
+                        </label>
+                        <label class="filter-option" data-level="info">
+                            <input type="checkbox" data-level="info" checked>
+                            <span class="filter-label">Info</span>
+                        </label>
+                        <label class="filter-option" data-level="success">
+                            <input type="checkbox" data-level="success" checked>
+                            <span class="filter-label">Success</span>
+                        </label>
+                        <label class="filter-option" data-level="warning">
+                            <input type="checkbox" data-level="warning" checked>
+                            <span class="filter-label">Warning</span>
+                        </label>
+                        <label class="filter-option" data-level="error">
+                            <input type="checkbox" data-level="error" checked>
+                            <span class="filter-label">Error</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Console Output -->
+            <main class="console-output" id="console-output">
+                <div class="console-empty" id="console-empty">
+                    <div class="console-empty-icon">&gt;_</div>
+                    <div>Waiting for events...</div>
+                    <div style="margin-top: 8px; font-size: 11px;">Connect to Socket.IO to see real-time logs</div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Tab 2: Code Editor -->
+        <div id="tab-code" class="panel-tab">
+            <!-- Code Editor Toolbar -->
+            <div class="tab-toolbar">
+                <button class="toolbar-btn" id="btn-edit-toggle" title="Enable editing">✎</button>
+                <button class="toolbar-btn saved" id="btn-save-file" title="Saved">✓</button>
+                <div class="toolbar-separator"></div>
+                <button class="toolbar-btn run" id="btn-run-code" title="Run code (F5)">
+                    <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                </button>
+                <button class="toolbar-btn ai" id="btn-ai-assist" title="AI Code Assistant">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.5"/></svg>
+                </button>
+            </div>
+            
+            <!-- Code Editor Container -->
+            <div class="code-editor-wrap">
+                <div id="code-editor" data-readonly="true"></div>
+            </div>
+            
+            <!-- Code Status Bar -->
+            <div class="code-status">
+                <div class="status-item">
+                    <span>Python</span>
+                </div>
+                <div class="status-item">
+                    <span id="code-cursor-pos">Ln 1, Col 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Split View Container (shown when split mode enabled) -->
+        <div class="split-container" id="split-container">
+            <!-- Left Panel: Command Line -->
+            <div class="split-panel" id="split-panel-console" style="flex: 1;">
+                <div class="split-panel-header">
+                    <span class="panel-title">
+                        <span>&gt;_</span>
+                        <span>Command Line</span>
+                    </span>
+                    <div class="split-toolbar">
+                        <button class="toolbar-btn" id="split-btn-clear" title="Clear">🗑</button>
+                        <button class="toolbar-btn active" id="split-btn-scroll" title="Auto-scroll">↓</button>
+                        <div class="filter-dropdown-container">
+                            <button class="toolbar-btn" id="split-btn-filter" title="Filter logs">⚙</button>
+                            <div class="filter-dropdown" id="split-filter-dropdown">
+                                <label class="filter-option" data-level="debug">
+                                    <input type="checkbox" data-level="debug" checked>
+                                    <span class="filter-label">Debug</span>
+                                </label>
+                                <label class="filter-option" data-level="info">
+                                    <input type="checkbox" data-level="info" checked>
+                                    <span class="filter-label">Info</span>
+                                </label>
+                                <label class="filter-option" data-level="success">
+                                    <input type="checkbox" data-level="success" checked>
+                                    <span class="filter-label">Success</span>
+                                </label>
+                                <label class="filter-option" data-level="warning">
+                                    <input type="checkbox" data-level="warning" checked>
+                                    <span class="filter-label">Warning</span>
+                                </label>
+                                <label class="filter-option" data-level="error">
+                                    <input type="checkbox" data-level="error" checked>
+                                    <span class="filter-label">Error</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="split-panel-content">
+                    <div class="console-output" id="split-console-output"></div>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div class="split-resizer" id="split-resizer"></div>
+
+            <!-- Right Panel: Code Editor -->
+            <div class="split-panel" id="split-panel-code" style="flex: 1;">
+                <div class="split-panel-header">
+                    <span class="panel-title">
+                        <span>⟨⟩</span>
+                        <span>Code</span>
+                    </span>
+                    <div class="split-toolbar">
+                        <button class="toolbar-btn" id="split-btn-edit" title="Edit">✎</button>
+                        <button class="toolbar-btn saved" id="split-btn-save" title="Saved">✓</button>
+                        <button class="toolbar-btn run" id="split-btn-run" title="Run code (F5)">
+                            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                        </button>
+                        <button class="toolbar-btn ai" id="split-btn-ai" title="AI Code Assistant">
+                            <svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="split-panel-content">
+                    <div class="code-editor-wrap">
+                        <div id="split-code-editor" data-readonly="true"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- CodeMirror Python Editor -->
+    <script type="module">
+    (async function() {
+        var editor, splitEditor;
+        var bundleUrl = "{{ url_for('static', filename='js/codemirror-console.bundle.js') }}";
+        var createPythonEditor;
+        
+        try {
+            var m = await import(bundleUrl);
+            createPythonEditor = m.createPythonEditor;
+            
+            var isSyncing = false;
+            
+            var container = document.getElementById('code-editor');
+            editor = createPythonEditor(container, {
+                onChange: function() { 
+                    window.dispatchEvent(new CustomEvent('code-editor-change')); 
+                    if (!isSyncing && window.__splitCodeEditor && document.body.classList.contains('layout-split')) {
+                        var mainValue = editor.value;
+                        var splitValue = window.__splitCodeEditor.value;
+                        if (mainValue !== splitValue) {
+                            isSyncing = true;
+                            window.__splitCodeEditor.value = mainValue;
+                            isSyncing = false;
+                        }
+                    }
+                }
+            });
+            
+            var splitContainer = document.getElementById('split-code-editor');
+            splitEditor = createPythonEditor(splitContainer, {
+                onChange: function() { 
+                    window.dispatchEvent(new CustomEvent('split-code-editor-change')); 
+                    if (!isSyncing && window.__codeEditor) {
+                        var splitValue = splitEditor.value;
+                        var mainValue = window.__codeEditor.value;
+                        if (splitValue !== mainValue) {
+                            isSyncing = true;
+                            window.__codeEditor.value = splitValue;
+                            isSyncing = false;
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('CodeMirror load failed:', e);
+            
+            var container = document.getElementById('code-editor');
+            var fallback = document.createElement('textarea');
+            fallback.id = 'code-editor-fallback';
+            fallback.placeholder = '# Python code...';
+            fallback.style.cssText = 'width:100%;height:100%;min-height:300px;padding:0.75rem;font-family:var(--font-mono);font-size:13px;background:#0a0e17;border:none;color:#e2e8f0;resize:none;box-sizing:border-box;';
+            container.appendChild(fallback);
+            fallback.addEventListener('input', function() { 
+                window.dispatchEvent(new CustomEvent('code-editor-change')); 
+            });
+            editor = fallback;
+            
+            var splitContainer = document.getElementById('split-code-editor');
+            var splitFallback = document.createElement('textarea');
+            splitFallback.id = 'split-code-editor-fallback';
+            splitFallback.placeholder = '# Python code...';
+            splitFallback.style.cssText = 'width:100%;height:100%;padding:0.5rem;font-family:var(--font-mono);font-size:13px;background:#0a0e17;border:none;color:#e2e8f0;resize:none;box-sizing:border-box;';
+            splitContainer.appendChild(splitFallback);
+            splitFallback.addEventListener('input', function() { 
+                window.dispatchEvent(new CustomEvent('split-code-editor-change')); 
+            });
+            splitEditor = splitFallback;
+        }
+        
+        window.__codeEditor = editor;
+        window.__splitCodeEditor = splitEditor;
+        window.dispatchEvent(new Event('codemirror-ready'));
+        
+        window.addEventListener('split-view-enabled', function() {
+            if (window.__splitCodeEditor && window.__codeEditor) {
+                window.__splitCodeEditor.value = window.__codeEditor.value;
+            }
+        });
+        
+        var currentHighlight = null;
+        
+        window.addEventListener('editor-goto-line', function(e) {
+            var lineNumber = e.detail && e.detail.line;
+            if (!lineNumber || !window.__codeEditor) return;
+            
+            var editorEl = document.querySelector('#code-editor .cm-editor');
+            if (!editorEl) return;
+            
+            var lines = editorEl.querySelectorAll('.cm-line');
+            var targetLine = lines[lineNumber - 1];
+            
+            if (!targetLine) return;
+            
+            if (currentHighlight) {
+                currentHighlight.classList.remove('outline-highlight');
+            }
+            
+            targetLine.classList.add('outline-highlight');
+            currentHighlight = targetLine;
+            
+            targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            if (document.body.classList.contains('layout-split')) {
+                var splitEditorEl = document.querySelector('#split-code-editor .cm-editor');
+                if (splitEditorEl) {
+                    var splitLines = splitEditorEl.querySelectorAll('.cm-line');
+                    var splitTargetLine = splitLines[lineNumber - 1];
+                    if (splitTargetLine) {
+                        splitEditorEl.querySelectorAll('.cm-line.outline-highlight').forEach(function(el) {
+                            el.classList.remove('outline-highlight');
+                        });
+                        splitTargetLine.classList.add('outline-highlight');
+                        splitTargetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+            
+            setTimeout(function() {
+                if (currentHighlight) {
+                    currentHighlight.classList.remove('outline-highlight');
+                    currentHighlight = null;
+                }
+                document.querySelectorAll('.cm-line.outline-highlight').forEach(function(el) {
+                    el.classList.remove('outline-highlight');
+                });
+            }, 3000);
+        });
+    })();
+    </script>
+
+    <!-- Prism.js syntax highlighting (for code output) -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <!-- File upload with progress (required for form file fields) -->
+    <script src="{{ url_for('static', filename='js/upload_progress.js') }}"></script>
+    <!-- Console Application - Core Functionality -->
+    <script src="{{ url_for('static', filename='js/console/console-app.js') }}"></script>
+    
+    <!-- Console Application - Socket.IO Event Handlers -->
+    <script src="{{ url_for('static', filename='js/console/console-socket.js') }}"></script>
+</body>
+</html>

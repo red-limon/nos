@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(78, 201, 176, 0.1); border-left: 3px solid var(--term-accent);
+            font-size: 0.9rem; color: var(--term-muted);
+        }
+        .beta-badge {
+            display: inline-block;
+            background: var(--term-warning);
+            color: var(--term-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        .placeholder {
+            padding: 3rem;
+            text-align: center;
+            border: 2px dashed var(--term-border);
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        .placeholder-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Vibe Coding <span class="beta-badge">BETA</span></h2>
+        <div class="toast-info">AI-assisted plugin development environment.</div>
+        <div class="toast-info">Describe what you want to build in natural language, and let AI generate the code.</div>
+        <div class="toast-info">Coming soon: Create nodes, workflows, and assistants using conversational AI.</div>
+        
+        <div class="placeholder">
+            <div class="placeholder-icon">✨</div>
+            <h3>Coming Soon</h3>
+            <p>This feature is under development.</p>
+            <p>Vibe coding will allow you to create plugins by describing them in natural language.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console Commands — Orkestro Engine</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        :root {
+            --help-bg: var(--app-bg, #0d1117);
+            --help-card: color-mix(in srgb, var(--app-card-bg, #161b22) 98%, transparent);
+            --help-border: var(--app-border, #30363d);
+            --help-text: var(--app-text, #e6edf3);
+            --help-muted: var(--app-text-muted, #8b949e);
+            --help-accent: var(--app-accent, #58a6ff);
+            --help-code-bg: rgba(110, 118, 129, 0.15);
+        }
+        body { margin: 0; padding: 0; background: var(--help-bg); color: var(--help-text); font-family: var(--app-font, system-ui, sans-serif); line-height: 1.6; }
+
+        .help-nav {
+            position: fixed;
+            inset: 0 0 auto 0;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            background: radial-gradient(circle at top left, rgba(88, 166, 255, 0.25), transparent 55%), rgba(13, 17, 23, 0.96);
+            border-bottom: 1px solid var(--help-border);
+            z-index: 10;
+            backdrop-filter: blur(16px);
+        }
+        .help-nav-brand {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            color: var(--help-accent);
+        }
+
+        .help-page { max-width: 960px; margin: 0 auto; padding: 4.5rem 1.5rem 4rem; }
+        .help-header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--help-border); }
+        .help-header h1 { font-size: 1.75rem; font-weight: 600; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+        .help-header p { margin: 0; color: var(--help-muted); font-size: 0.95rem; }
+        .help-toc { background: var(--help-card); border: 1px solid var(--help-border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 2.5rem; }
+        .help-toc h2 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--help-muted); margin: 0 0 0.75rem; }
+        .help-toc ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.35rem 1.5rem; }
+        .help-toc a { color: var(--help-accent); text-decoration: none; font-size: 0.9rem; }
+        .help-toc a:hover { text-decoration: underline; }
+        .help-section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+        .help-section:target { outline: 1px solid var(--help-accent); outline-offset: 4px; border-radius: 6px; }
+        .help-cmd-name { font-size: 1.1rem; font-weight: 600; font-family: ui-monospace, monospace; color: var(--help-text); margin-bottom: 0.25rem; }
+        .help-aliases { font-size: 0.85rem; color: var(--help-muted); margin-bottom: 0.5rem; }
+        .help-aliases span:not(:last-child)::after { content: ", "; }
+        .help-desc { color: var(--help-muted); margin-bottom: 0.75rem; font-size: 0.95rem; }
+        .help-usage-wrap { background: var(--help-code-bg); border: 1px solid var(--help-border); border-radius: 6px; padding: 0.9rem 1rem; margin: 0.5rem 0 1rem; overflow-x: auto; }
+        .help-usage { font-family: ui-monospace, "Cascadia Code", "Consolas", monospace; font-size: 0.8rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin: 0; color: var(--help-text); }
+        .help-subcommands { margin-top: 1rem; padding-left: 1rem; border-left: 3px solid var(--help-border); }
+        .help-subcommands h4 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--help-muted); margin: 0 0 0.5rem; }
+        .help-sub { margin-bottom: 0.75rem; }
+        .help-sub .help-cmd-name { font-size: 0.95rem; }
+        .help-sub .help-usage-wrap { padding: 0.6rem 0.8rem; }
+        .help-sub .help-usage { font-size: 0.75rem; }
+        @media (max-width: 640px) { .help-page { padding: 1.25rem 1rem 3rem; } .help-toc ul { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="help-nav">
+        <div class="help-nav-brand">nOS</div>
+    </div>
+    <div class="help-page">
+        <header class="help-header">
+            <h1>Console Commands Reference</h1>
+            <p>Available Engine Console commands: description, syntax, parameters and examples.</p>
+        </header>
+
+        <nav class="help-toc" aria-label="Command index">
+            <h2>Index</h2>
+            <ul>
+                {% for cmd in commands %}
+                <li><a href="#cmd-{{ cmd.name }}">{{ cmd.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        <main>
+            {% for cmd in commands %}
+            <section class="help-section" id="cmd-{{ cmd.name }}">
+                <div class="help-cmd-name">{{ cmd.name }}</div>
+                {% if cmd.aliases %}
+                <div class="help-aliases">Alias: {% for a in cmd.aliases %}<span>{{ a }}</span>{% endfor %}</div>
+                {% endif %}
+                <div class="help-desc">{{ cmd.description }}</div>
+                {% if cmd.usage %}
+                <div class="help-usage-wrap">
+                    <pre class="help-usage">{{ cmd.usage }}</pre>
+                </div>
+                {% endif %}
+                {% if cmd.subcommands %}
+                <div class="help-subcommands">
+                    <h4>Subcommands</h4>
+                    {% for sub in cmd.subcommands %}
+                    <div class="help-sub">
+                        <div class="help-cmd-name">{{ cmd.name }} {{ sub.name }}</div>
+                        <div class="help-desc">{{ sub.description }}</div>
+                        {% if sub.usage %}
+                        <div class="help-usage-wrap">
+                            <pre class="help-usage">{{ sub.usage }}</pre>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </section>
+            {% endfor %}
+        </main>
+    </div>
+</body>
+</html>

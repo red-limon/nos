@@ -1,0 +1,19 @@
+{
+  "name": "codemirror-console-bundle",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.23.1",
+    "@codemirror/commands": "^6.4.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/lang-python": "^6.1.2",
+    "@codemirror/theme-one-dark": "^6.1.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  },
+  "scripts": {
+    "build": "esbuild entry.js --bundle --format=esm --outfile=../codemirror-console.bundle.js"
+  }
+}

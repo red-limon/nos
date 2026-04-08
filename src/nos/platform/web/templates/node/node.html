@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; box-sizing: border-box; }
+        body { padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .dashboard {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 0 0.5rem 0.5rem;
+            align-self: stretch;
+        }
+        .breadcrumb-nav {
+            flex: none;
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.35rem 0 0.5rem; margin: 0 0 0.5rem;
+            font-size: 0.9rem; color: var(--app-text-muted);
+            border-bottom: 1px solid var(--app-border);
+        }
+        .breadcrumb-nav span.current { color: var(--app-accent); font-weight: 500; }
+        wx-data-grid {
+            flex: 1;
+            display: block;
+            width: 100%;
+            min-height: 200px;
+            min-width: 0;
+        }
+        @media (max-width: 768px) {
+            .dashboard { padding: 0 0.25rem 0.25rem; }
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/index.86a5bf44.umd.js') }}"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <span class="current">Nodes Registry</span>
+        </nav>
+        <wx-data-grid class="theme-dark" origin="{{ url_for('api.get_node_list') }}" row-key="node_id" auto-load form-stylesheet-href="/static/css/app-theme.css" form-popup-url="{{ url_for('web.node_form_panel') }}"></wx-data-grid>
+    </div>
+    <script>
+        (function () {
+          // Intercept fetch to handle 403 errors with custom messages
+          var originalFetch = window.fetch;
+          window.fetch = function(url, options) {
+            return originalFetch.apply(this, arguments).then(function(response) {
+              if (response.status === 403 && url.includes('/api/node/delete')) {
+                return response.clone().json().then(function(data) {
+                  if (data.error) {
+                    alert(data.error);
+                  }
+                  return response;
+                }).catch(function() {
+                  return response;
+                });
+              }
+              return response;
+            });
+          };
+
+          var grid = document.querySelector('wx-data-grid');
+          if (grid) {
+            grid.actions = {
+              create: { name: 'create', endPoint: '/api/node/create' },
+              update: { name: 'update', endPoint: '/api/node/update' },
+              delete: { name: 'delete', endPoint: '/api/node/delete' }
+            };
+            if (typeof grid.formPopupUrl === 'undefined' && grid.getAttribute('form-popup-url')) {
+              grid.formPopupUrl = grid.getAttribute('form-popup-url');
+            }
+          }
+        })();
+      </script>
+</body>
+</html>

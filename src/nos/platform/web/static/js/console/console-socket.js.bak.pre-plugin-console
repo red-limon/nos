@@ -1,0 +1,207 @@
+/**
+ * Hythera Console - Socket.IO Event Handlers
+ * 
+ * This file handles all Socket.IO communication:
+ * - Connection initialization
+ * - Event listeners (socket.on)
+ * - Event emitters (socket.emit)
+ * 
+ * Depends on console-app.js which exposes window.HytheraConsole
+ */
+
+'use strict';
+
+(function() {
+    'use strict';
+
+    /**
+     * Initialize Socket.IO connection and event handlers
+     * This function is called when DOM is ready
+     */
+    function initSocket() {
+        // Get reference to console API
+        const Console = window.HytheraConsole;
+        if (!Console) {
+            console.error('HytheraConsole not found. Make sure console-app.js is loaded first.');
+            return;
+        }
+
+        const state = Console.state;
+        const dom = Console.dom;
+
+        // Close existing connection
+        if (state.socket) {
+            state.socket.disconnect();
+        }
+
+        // Create new connection
+        state.socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 10
+        });
+
+        // ------------------------------------
+        // Connection Events
+        // ------------------------------------
+
+        state.socket.on('connect', () => {
+            Console.updateConnectionStatus(true);
+            Console.addSystemMessage('Connected to server', 'success');
+            Console.createPrompt();
+        });
+
+        state.socket.on('disconnect', (reason) => {
+            Console.updateConnectionStatus(false);
+            if (state.currentPrompt) {
+                state.currentPrompt.remove();
+                state.currentPrompt = null;
+            }
+            Console.addSystemMessage(`Disconnected: ${reason}`, 'warning');
+        });
+
+        state.socket.on('connect_error', (error) => {
+            Console.addSystemMessage(`Connection error: ${error.message}`, 'error');
+        });
+
+        // ------------------------------------
+        // Execution Events
+        // ------------------------------------
+
+        /**
+         * Listen for execution logs from node/workflow execution
+         * These are real-time events during execution
+         */
+        state.socket.on('execution_log', (data) => {
+            Console.addLogEntry(data);
+        });
+
+        /**
+         * Listen for console output from command execution
+         * This handles command results, progress, errors, etc.
+         */
+        state.socket.on('console_output', (data) => {
+            // Handle clear command
+            if (data.type === 'clear') {
+                Console.handleClear();
+                return;
+            }
+            
+            // Map console output types to log levels
+            const typeMap = {
+                'info': 'info',
+                'success': 'success',
+                'error': 'error',
+                'warning': 'error'
+            };
+            const outputType = typeMap[data.type] || 'info';
+            const format = data.format || 'text';
+            
+            // Track execution_id for Ctrl+C stop command
+            if (format === 'progress' && data.data && data.data.execution_id) {
+                state.currentExecutionId = data.data.execution_id;
+            }
+            
+            // Remove progress indicators when final result arrives
+            if (format !== 'progress') {
+                Console.clearProgressIndicators();
+                // Clear execution tracking when execution completes
+                if (data.type === 'success' || data.type === 'error') {
+                    state.currentExecutionId = null;
+                }
+            }
+            
+            // Check for create/open command success - load code into editor
+            if (data.type === 'success' && data.data && data.data.action) {
+                const action = data.data.action;
+                if ((action === 'create_node' || action === 'create_workflow' ||
+                     action === 'open_node' || action === 'open_workflow') && data.data.content) {
+                    Console.loadCreatedCodeIntoEditor(data.data);
+                }
+            }
+
+            // Check for save command result - update Save icon
+            if (data.data && data.data.action === 'save') {
+                if (data.data.success) {
+                    window.dispatchEvent(new CustomEvent('code-save-success'));
+                } else {
+                    window.dispatchEvent(new CustomEvent('code-save-error'));
+                }
+            }
+            
+            // Render output based on format type
+            Console.renderConsoleOutput(data.message, outputType, format, data.data);
+            
+            // Recreate prompt after receiving output (except for progress)
+            if (format !== 'progress' && state.connected && !state.currentPrompt) {
+                Console.createPrompt();
+            }
+        });
+
+        /**
+         * Listen for execution requests (bidirectional communication)
+         * Handles interactive forms for node/workflow configuration
+         */
+        state.socket.on('execution_request', (data) => {
+            const eventType = data.event_type || '';
+            const requestData = data.data || {};
+            
+            // Check if this is a form request (node or workflow initial state)
+            if (eventType === 'form_input' || requestData.form_type === 'node_input' || requestData.form_type === 'workflow_initial_state') {
+                // Render interactive form
+                const formPayload = {
+                    request_id: data.request_id,
+                    title: requestData.title || `Configure ${data.node_id || 'Execution'}`,
+                    node_id: data.node_id,
+                    execution_id: data.execution_id,
+                    state: requestData.state || { label: 'State', fields: [] },
+                    params: requestData.params || { label: 'Parameters', fields: [] }
+                };
+                
+                Console.renderConsoleOutput(
+                    `📝 ${formPayload.title}`,
+                    'info',
+                    'formData',
+                    formPayload
+                );
+            } else {
+                // Default: show as log entry with request details
+                Console.addLogEntry({
+                    event: 'execution_request',
+                    level: 'warning',
+                    message: `Server requests: ${eventType}`,
+                    request_id: data.request_id,
+                    data: requestData
+                });
+            }
+        });
+    }
+
+    /**
+     * Handle reconnection request
+     */
+    function handleReconnect() {
+        initSocket();
+    }
+
+    // ------------------------------------
+    // Initialization
+    // ------------------------------------
+
+    function init() {
+        // Listen for reconnect event from menu
+        window.addEventListener('console-reconnect', handleReconnect);
+        window.addEventListener('menu-reconnect', handleReconnect);
+
+        // Initialize Socket.IO connection
+        initSocket();
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+})();

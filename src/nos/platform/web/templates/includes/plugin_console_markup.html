@@ -1,0 +1,33 @@
+{# Plugin Console - Command line markup (toolbar + output)
+   Used by: plugin_console_embed.html
+   Requires IDs: console-output, console-empty, btn-clear, btn-scroll, btn-filter, filter-dropdown, status-dot, status-text #}
+<!-- Status bar -->
+<div class="plugin-console-status">
+    <div class="status-connection">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Disconnected</span>
+    </div>
+</div>
+<!-- Toolbar -->
+<div class="tab-toolbar">
+    <button class="toolbar-btn" id="btn-clear" title="Clear console">🗑</button>
+    <button class="toolbar-btn active" id="btn-scroll" title="Toggle auto-scroll">↓</button>
+    <div class="filter-dropdown-container">
+        <button class="toolbar-btn" id="btn-filter" title="Filter logs">⚙</button>
+        <div class="filter-dropdown" id="filter-dropdown">
+            <label class="filter-option" data-level="debug"><input type="checkbox" data-level="debug" checked><span class="filter-label">Debug</span></label>
+            <label class="filter-option" data-level="info"><input type="checkbox" data-level="info" checked><span class="filter-label">Info</span></label>
+            <label class="filter-option" data-level="success"><input type="checkbox" data-level="success" checked><span class="filter-label">Success</span></label>
+            <label class="filter-option" data-level="warning"><input type="checkbox" data-level="warning" checked><span class="filter-label">Warning</span></label>
+            <label class="filter-option" data-level="error"><input type="checkbox" data-level="error" checked><span class="filter-label">Error</span></label>
+        </div>
+    </div>
+</div>
+<!-- Console Output -->
+<main class="console-output" id="console-output">
+    <div class="console-empty" id="console-empty">
+        <div class="console-empty-icon">&gt;_</div>
+        <div>Waiting for events...</div>
+        <div style="margin-top: 8px; font-size: 11px;">Connect to Socket.IO to see real-time logs</div>
+    </div>
+</main>

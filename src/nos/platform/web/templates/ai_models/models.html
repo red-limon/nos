@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        wx-data-grid {
+            display: block;
+            width: 100%;
+            height: 600px;
+            min-height: 400px;
+            max-height: calc(100vh - 200px);
+        }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(78, 201, 176, 0.1); border-left: 3px solid var(--term-accent);
+            font-size: 0.9rem; color: var(--term-muted);
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/index.86a5bf44.umd.js') }}"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>AI Models Configuration</h2>
+        <div class="toast-info">Manage AI providers, models, and their runtime configurations.</div>
+        <div class="toast-info">Each row represents a model configuration linked to a specific model and provider.</div>
+        <div class="toast-info">Supports multiple providers: OpenAI, Ollama, Anthropic, local models, and more.</div>
+        <wx-data-grid class="theme-dark" origin="{{ url_for('api.get_ai_model_config_list') }}" row-key="config_id" auto-load form-stylesheet-href="/static/css/app-theme.css"></wx-data-grid>
+    </div>
+    <script>
+        (function () {
+          var originalFetch = window.fetch;
+          window.fetch = function(url, options) {
+            return originalFetch.apply(this, arguments).then(function(response) {
+              if (response.status === 403 && url.includes('/api/ai-model-config/delete')) {
+                return response.clone().json().then(function(data) {
+                  if (data.error) {
+                    alert(data.error);
+                  }
+                  return response;
+                }).catch(function() {
+                  return response;
+                });
+              }
+              return response;
+            });
+          };
+
+          var grid = document.querySelector('wx-data-grid');
+          if (grid) {
+            grid.actions = {
+              create: { name: 'create', endPoint: '/api/ai-model-config/create' },
+              update: { name: 'update', endPoint: '/api/ai-model-config/update' },
+              delete: { name: 'delete', endPoint: '/api/ai-model-config/delete' }
+            };
+          }
+        })();
+      </script>
+</body>
+</html>

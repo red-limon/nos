@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block page_title %}RedLimon - Assistants Showcase{% endblock %}
+{% block extra_head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+{% block extra_css %}
+    <style>
+        :root {
+            --rl-bg: #0f0a0a;
+            --rl-card: rgba(30, 12, 12, 0.92);
+            --rl-border: rgba(229, 57, 53, 0.35);
+            --rl-accent: #ff5252;
+            --rl-text: #f5e6e6;
+            --rl-text-muted: #c4a5a5;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .showcase-page {
+            min-height: 100vh;
+            font-family: 'Outfit', system-ui, sans-serif;
+            background: var(--rl-bg);
+            color: var(--rl-text);
+        }
+        .nav-showcase {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            background: rgba(15, 10, 10, 0.9);
+            border-bottom: 1px solid var(--rl-border);
+            backdrop-filter: blur(12px);
+        }
+        .nav-showcase__brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--rl-accent);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .nav-showcase__brand:hover { color: #ff7676; }
+        .nav-showcase__brand-logo {
+            width: 1.6em;
+            height: 1.6em;
+            flex-shrink: 0;
+        }
+        .nav-showcase__brand-logo .lemon-segment { fill: #ffeb3b; }
+        .nav-showcase__brand-logo .lemon-core { fill: #ff5252; }
+        .nav-showcase__brand-logo .lemon-outline { stroke: #ff5252; fill: none; }
+        .nav-showcase__menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: none;
+            border: 1px solid var(--rl-border);
+            color: var(--rl-accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .nav-showcase__menu-btn:hover { background: rgba(255, 82, 82, 0.1); }
+        .showcase-main {
+            padding-top: 60px;
+            min-height: 100vh;
+            display: flex;
+        }
+        .showcase-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        .showcase-info {
+            background: var(--rl-card);
+            border: 1px solid var(--rl-border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .showcase-info h2 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--rl-accent); }
+        .showcase-info p { color: var(--rl-text-muted); line-height: 1.7; margin-bottom: 0.75rem; }
+        .showcase-output {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+        .showcase-output .log-entry { padding: 0.35rem 0; border-bottom: 1px solid rgba(255,82,82,0.15); }
+        .showcase-output .log-info { color: #89b4fa; }
+        .showcase-output .log-success { color: #a6e3a1; }
+        .showcase-output .log-error { color: #f38ba8; }
+        .showcase-output .log-warning { color: #f9e2af; }
+        .showcase-output pre { margin: 0.5rem 0; white-space: pre-wrap; word-break: break-word; }
+        .offcanvas-showcase {
+            position: fixed;
+            top: 0; left: 0;
+            width: 320px;
+            max-width: 85vw;
+            height: 100vh;
+            background: rgba(20, 12, 12, 0.98);
+            border-right: 1px solid var(--rl-border);
+            z-index: 1100;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+        .offcanvas-showcase.open { transform: translateX(0); }
+        .offcanvas-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .offcanvas-overlay.show { opacity: 1; visibility: visible; }
+        .offcanvas-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--rl-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .offcanvas-header h2 { font-size: 1.1rem; color: var(--rl-accent); }
+        .offcanvas-close {
+            background: none;
+            border: none;
+            color: var(--rl-text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        .offcanvas-close:hover { color: var(--rl-accent); }
+        .tree-menu { list-style: none; padding: 0.5rem 0; }
+        .tree-menu-item { margin: 0; }
+        .tree-menu-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            color: var(--rl-text-muted);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .tree-menu-link:hover { background: rgba(255,82,82,0.08); color: var(--rl-accent); }
+        .tree-menu-link.assistant-run { border-left-color: var(--rl-accent); }
+        .tree-menu-toggle { margin-left: auto; font-size: 0.7rem; transition: transform 0.2s; }
+        .tree-menu-item.expanded > .tree-menu-link .tree-menu-toggle { transform: rotate(90deg); }
+        .tree-menu-children { list-style: none; padding-left: 0; display: none; }
+        .tree-menu-item.expanded > .tree-menu-children { display: block; }
+        .tree-menu-children .tree-menu-link { padding-left: 2rem; }
+        .interactive-form {
+            background: rgba(30,12,12,0.6);
+            border: 1px solid var(--rl-border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .interactive-form .form-section { margin-bottom: 1rem; }
+        .interactive-form .field-label { display: block; margin-bottom: 0.35rem; font-size: 0.9rem; }
+        .interactive-form input, .interactive-form textarea {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(15,10,10,0.8);
+            border: 1px solid var(--rl-border);
+            border-radius: 6px;
+            color: var(--rl-text);
+        }
+        .interactive-form .form-button-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .interactive-form .form-send-btn, .interactive-form .form-cancel-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .interactive-form .form-send-btn {
+            background: var(--rl-accent);
+            color: #fff;
+            border: none;
+        }
+        .interactive-form .form-cancel-btn {
+            background: transparent;
+            border: 1px solid var(--rl-border);
+            color: var(--rl-text-muted);
+        }
+        @media (max-width: 768px) {
+            .offcanvas-showcase { width: 100%; max-width: 100%; }
+        }
+    </style>
+{% endblock %}
+{% block body %}
+<div class="showcase-page">
+    <nav class="nav-showcase">
+        <a href="{{ url_for('web.redlimon') }}" class="nav-showcase__brand">
+            <svg class="nav-showcase__brand-logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g transform="translate(24,24)">
+                    <path class="lemon-segment" d="M0 -20 A20 20 0 0 1 17.32 -10 L0 0 Z"/>
+                    <path class="lemon-segment" d="M17.32 -10 A20 20 0 0 1 17.32 10 L0 0 Z"/>
+                    <path class="lemon-segment" d="M17.32 10 A20 20 0 0 1 0 20 L0 0 Z"/>
+                    <path class="lemon-segment" d="M0 20 A20 20 0 0 1 -17.32 10 L0 0 Z"/>
+                    <path class="lemon-segment" d="M-17.32 10 A20 20 0 0 1 -17.32 -10 L0 0 Z"/>
+                    <path class="lemon-segment" d="M-17.32 -10 A20 20 0 0 1 0 -20 L0 0 Z"/>
+                    <circle class="lemon-core" cx="0" cy="0" r="5"/>
+                    <ellipse class="lemon-outline" cx="0" cy="0" rx="20" ry="20" fill="none" stroke-width="1.2"/>
+                </g>
+            </svg>
+            <span>RedLimon</span>
+        </a>
+        <button class="nav-showcase__menu-btn" id="nav-menu-btn" aria-label="Open menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+            Menu
+        </button>
+    </nav>
+
+    <div class="offcanvas-overlay" id="offcanvas-overlay"></div>
+    <aside class="offcanvas-showcase" id="offcanvas-menu">
+        <div class="offcanvas-header">
+            <h2>Digital Assistants</h2>
+            <button class="offcanvas-close" id="offcanvas-close" aria-label="Close">×</button>
+        </div>
+        <ul class="tree-menu">
+            <li class="tree-menu-item expanded">
+                <div class="tree-menu-link" data-toggle>
+                    <span>🛠️</span>
+                    <span>Web Scraper</span>
+                    <span class="tree-menu-toggle">▶</span>
+                </div>
+                <ul class="tree-menu-children">
+                    <li class="tree-menu-item">
+                        <a class="tree-menu-link assistant-run" href="#" data-run="run node dev nos.plugins.nodes.web_scraper.polite_scrape PoliteScrapeNode --sync --debug">
+                            <span>🤖</span>
+                            <span>Base Web Scraper</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="showcase-main">
+        <div class="showcase-content">
+            <div class="showcase-info" id="showcase-info">
+                <h2>Digital Assistants Showcase</h2>
+                <p><strong>Open the menu and select a digital assistant to run.</strong> Each assistant can fetch data, process information, or perform automated tasks. Configure parameters when prompted and view results in real time.</p>
+            </div>
+            <div class="showcase-output" id="showcase-output"></div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+(function() {
+    const INFO_ID = 'showcase-info';
+    const OUTPUT_ID = 'showcase-output';
+    const MENU_ID = 'offcanvas-menu';
+    const OVERLAY_ID = 'offcanvas-overlay';
+
+    let socket = null;
+
+    function openMenu() {
+        document.getElementById(MENU_ID).classList.add('open');
+        document.getElementById(OVERLAY_ID).classList.add('show');
+    }
+    function closeMenu() {
+        document.getElementById(MENU_ID).classList.remove('open');
+        document.getElementById(OVERLAY_ID).classList.remove('show');
+    }
+
+    document.getElementById('nav-menu-btn').addEventListener('click', openMenu);
+    document.getElementById('offcanvas-close').addEventListener('click', closeMenu);
+    document.getElementById(OVERLAY_ID).addEventListener('click', closeMenu);
+
+    document.querySelectorAll('[data-toggle]').forEach(el => {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            const item = this.closest('.tree-menu-item');
+            if (item) item.classList.toggle('expanded');
+        });
+    });
+
+    document.querySelectorAll('[data-run]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const cmd = this.getAttribute('data-run');
+            if (cmd) runAssistant(cmd);
+        });
+    });
+
+    function ensureSocket() {
+        if (!socket || !socket.connected) {
+            socket = io({ reconnection: true, reconnectionAttempts: 5 });
+            socket.on('connect', () => appendLog('Connected to server', 'info'));
+            socket.on('disconnect', () => appendLog('Disconnected', 'warning'));
+            socket.on('connect_error', (err) => appendLog('Connection error: ' + err.message, 'error'));
+            socket.on('console_output', onConsoleOutput);
+            socket.on('execution_log', onExecutionLog);
+            socket.on('execution_request', onExecutionRequest);
+        }
+        return socket;
+    }
+
+    function appendLog(msg, type) {
+        const out = document.getElementById(OUTPUT_ID);
+        const info = document.getElementById(INFO_ID);
+        if (info) info.style.display = 'none';
+        const div = document.createElement('div');
+        div.className = 'log-entry log-' + (type || 'info');
+        const pre = document.createElement('pre');
+        pre.textContent = msg;
+        div.appendChild(pre);
+        out.appendChild(div);
+        out.scrollTop = out.scrollHeight;
+    }
+
+    function onConsoleOutput(data) {
+        const type = data.type || 'info';
+        let msg = data.message || '';
+        if (data.data && typeof data.data === 'object') {
+            try { msg += '\n' + JSON.stringify(data.data, null, 2); } catch (_) {}
+        }
+        appendLog(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
+    }
+
+    function onExecutionLog(data) {
+        const msg = (data.message || data.event || '') + (data.result ? ' ' + JSON.stringify(data.result) : '');
+        if (msg) appendLog(msg, data.level || 'info');
+    }
+
+    function onExecutionRequest(data) {
+        const eventType = data.event_type || '';
+        const reqData = data.data || {};
+        if (eventType === 'form_input' || reqData.form_type === 'node_input' || reqData.form_type === 'workflow_initial_state') {
+            renderForm(data);
+        } else {
+            appendLog('Server request: ' + eventType + ' ' + JSON.stringify(reqData), 'warning');
+        }
+    }
+
+    function renderForm(data) {
+        const reqId = data.request_id;
+        const title = (data.data && data.data.title) || 'Configure';
+        const state = (data.data && data.data.state) || { label: 'State', fields: [] };
+        const params = (data.data && data.data.params) || { label: 'Parameters', fields: [] };
+
+        const out = document.getElementById(OUTPUT_ID);
+        document.getElementById(INFO_ID).style.display = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'log-entry';
+        const h3 = document.createElement('h3');
+        h3.style.cssText = 'font-size:1rem;margin-bottom:0.5rem;color:var(--rl-accent);';
+        h3.textContent = '📝 ' + title;
+        wrapper.appendChild(h3);
+
+        const form = document.createElement('form');
+        form.className = 'interactive-form';
+        form.setAttribute('data-request-id', reqId);
+
+        function addSection(sectionName, sectionData) {
+            if (!sectionData.fields || sectionData.fields.length === 0) return;
+            const sect = document.createElement('div');
+            sect.className = 'form-section';
+            const label = document.createElement('div');
+            label.style.cssText = 'font-weight:600;margin-bottom:0.5rem;';
+            label.textContent = sectionData.label || sectionName;
+            sect.appendChild(label);
+            sectionData.fields.forEach(f => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '0.75rem';
+                const lab = document.createElement('label');
+                lab.className = 'field-label';
+                lab.textContent = (f.label || f.name) + (f.required ? ' *' : '');
+                div.appendChild(lab);
+                let input;
+                if (f.type === 'json' || (f.type === 'text' && f.rows > 1)) {
+                    input = document.createElement('textarea');
+                    input.rows = f.rows || 4;
+                    input.value = f.value !== undefined ? (typeof f.value === 'object' ? JSON.stringify(f.value, null, 2) : String(f.value)) : '';
+                } else {
+                    input = document.createElement('input');
+                    input.type = f.type || 'text';
+                    input.value = f.value !== undefined ? String(f.value) : '';
+                }
+                input.setAttribute('data-section', sectionName);
+                input.setAttribute('data-field-name', f.name);
+                input.placeholder = f.placeholder || '';
+                div.appendChild(input);
+                sect.appendChild(div);
+            });
+            form.appendChild(sect);
+        }
+        addSection('state', state);
+        addSection('params', params);
+
+        const btnRow = document.createElement('div');
+        btnRow.className = 'form-button-row';
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.className = 'form-send-btn';
+        sendBtn.textContent = '➤ Run';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'form-cancel-btn';
+        cancelBtn.textContent = 'Cancel';
+
+        function collectFormData() {
+            const obj = { state: {}, params: {} };
+            form.querySelectorAll('[data-section][data-field-name]').forEach(inp => {
+                const sec = inp.getAttribute('data-section');
+                const name = inp.getAttribute('data-field-name');
+                let val = inp.value;
+                if (inp.tagName === 'TEXTAREA' && (inp.value.trim().startsWith('{') || inp.value.trim().startsWith('['))) {
+                    try { val = JSON.parse(inp.value); } catch (_) {}
+                }
+                if (obj[sec]) obj[sec][name] = val;
+            });
+            return obj;
+        }
+
+        sendBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            const formData = collectFormData();
+            socket.emit('execution_response', { request_id: reqId, response: formData });
+            appendLog('Form submitted, running...', 'info');
+        });
+        cancelBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            socket.emit('execution_response', { request_id: reqId, response: { cancelled: true } });
+            appendLog('Cancelled', 'warning');
+        });
+
+        btnRow.appendChild(cancelBtn);
+        btnRow.appendChild(sendBtn);
+        form.appendChild(btnRow);
+        wrapper.appendChild(form);
+        out.appendChild(wrapper);
+        out.scrollTop = out.scrollHeight;
+    }
+
+    function runAssistant(rawCommand) {
+        closeMenu();
+        ensureSocket();
+        if (socket.connected) {
+            appendLog('Running: ' + rawCommand, 'info');
+            socket.emit('console_command', { raw_command: rawCommand });
+        } else {
+            socket.once('connect', () => {
+                appendLog('Running: ' + rawCommand, 'info');
+                socket.emit('console_command', { raw_command: rawCommand });
+            });
+        }
+    }
+})();
+</script>
+{% endblock %}

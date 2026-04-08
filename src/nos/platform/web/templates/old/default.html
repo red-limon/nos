@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Dashboard</h2>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p class="stat-value">{{ users|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Users</h3>
+            <p class="stat-value" id="active-users-count">{{ active_users_count }}</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Users</h3>
+        <div id="users-list">
+            {% if users %}
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No users found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Server-Sent Events (SSE)</h3>
+        <div id="events-log" class="events-log">
+            <p>Connecting to event stream...</p>
+        </div>
+        <div style="margin-top: 1rem;">
+            <button id="test-sse-btn" class="btn">Test SSE - Create User</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Socket.IO Events</h3>
+        <div id="socketio-log" class="events-log">
+            <p>Connecting to Socket.IO...</p>
+        </div>
+        <div style="margin-top: 1rem;">
+            <button id="test-socketio-btn" class="btn" style="margin-right: 0.5rem;">Send Test Message</button>
+            <button id="test-user-event-btn" class="btn">Send User Event</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Server-Sent Events connection
+    const sseLog = document.getElementById('events-log');
+    let eventSource = null;
+    
+    function connectSSE() {
+        console.log('Attempting to connect to SSE endpoint: /events');
+        sseLog.innerHTML = '<p>Connecting to /events...</p>';
+        
+        try {
+            console.log('Creating EventSource...');
+            eventSource = new EventSource('/events');
+            console.log('EventSource created, readyState:', eventSource.readyState);
+            
+            eventSource.onopen = function(event) {
+                console.log('SSE connection opened', event);
+                console.log('EventSource readyState:', eventSource.readyState);
+                sseLog.innerHTML = '<p style="color: #4ec9b0;">✓ Connected to SSE stream. Waiting for events...</p>';
+            };
+            
+            eventSource.onmessage = function(event) {
+                console.log('SSE raw message:', event);
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('SSE parsed data:', data);
+                    
+                    // Clear initial message if present
+                    if (sseLog.children.length === 1 && sseLog.children[0].tagName === 'P') {
+                        sseLog.innerHTML = '';
+                    }
+                    
+                    // Handle error messages
+                    if (data.type === 'error') {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'event-entry';
+                        logEntry.style.backgroundColor = '#ffebee';
+                        logEntry.style.color = '#c62828';
+                        logEntry.innerHTML = `
+                            <span class="event-time">${new Date().toLocaleTimeString()}</span>
+                            <span class="event-type">ERROR</span>
+                            <span class="event-data">${data.message || 'Unknown error'}: ${data.error || ''}</span>
+                        `;
+                        sseLog.insertBefore(logEntry, sseLog.firstChild);
+                        return;
+                    }
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'event-entry';
+                    logEntry.innerHTML = `
+                        <span class="event-time">${new Date().toLocaleTimeString()}</span>
+                        <span class="event-type">${data.type || 'event'}</span>
+                        <span class="event-data">${JSON.stringify(data)}</span>
+                    `;
+                    
+                    sseLog.insertBefore(logEntry, sseLog.firstChild);
+                    
+                    // Update active users count if present in event
+                    if (data.active_users_count !== undefined) {
+                        document.getElementById('active-users-count').textContent = data.active_users_count;
+                    }
+                    
+                    // Keep only last 20 entries
+                    while (sseLog.children.length > 20) {
+                        sseLog.removeChild(sseLog.lastChild);
+                    }
+                } catch (e) {
+                    console.error('Error parsing SSE message:', e, 'Raw data:', event.data);
+                    // Show raw data if parsing fails
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'event-entry';
+                    logEntry.innerHTML = `
+                        <span class="event-time">${new Date().toLocaleTimeString()}</span>
+                        <span class="event-type">raw</span>
+                        <span class="event-data">${event.data}</span>
+                    `;
+                    sseLog.insertBefore(logEntry, sseLog.firstChild);
+                }
+            };
+            
+            eventSource.onerror = function(event) {
+                console.error('SSE connection error:', event);
+                console.error('EventSource readyState:', eventSource.readyState);
+                
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    console.log('SSE connection closed - will attempt reconnect');
+                    sseLog.innerHTML = '<p class="error">SSE connection closed. Reconnecting...</p>';
+                    // Close current connection
+                    if (eventSource) {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                    // Reconnect after a short delay
+                    setTimeout(function() {
+                        console.log('Reconnecting SSE...');
+                        connectSSE();
+                    }, 2000);
+                } else if (eventSource.readyState === EventSource.CONNECTING) {
+                    console.log('SSE reconnecting...');
+                    sseLog.innerHTML = '<p class="error">Reconnecting to SSE stream...</p>';
+                }
+            };
+        } catch (e) {
+            console.error('Failed to create EventSource:', e);
+            sseLog.innerHTML = '<p class="error">Failed to create SSE connection: ' + e.message + '</p>';
+        }
+    }
+    
+    // Start SSE connection
+    connectSSE();
+    
+    // Test SSE button - Create user via API
+    document.getElementById('test-sse-btn').addEventListener('click', async function() {
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Creating user...';
+        
+        try {
+            // Generate random username and email for testing
+            const timestamp = Date.now();
+            const username = `testuser_${timestamp}`;
+            const email = `test_${timestamp}@example.com`;
+            
+            console.log('Creating user:', { username, email });
+            
+            let response;
+            try {
+                response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email
+                    })
+                });
+                console.log('Fetch completed, status:', response.status);
+            } catch (fetchError) {
+                console.error('Fetch error:', fetchError);
+                throw fetchError;
+            }
+            
+            console.log('API Response status:', response.status);
+            console.log('API Response ok:', response.ok);
+            console.log('API Response headers:', response.headers);
+            
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned non-JSON response: ' + text.substring(0, 100));
+            }
+            
+            if (response.ok) {
+                console.log('User created successfully:', data);
+                // The SSE event should be received automatically
+                // Add a visual indicator
+                const logEntry = document.createElement('div');
+                logEntry.className = 'event-entry';
+                logEntry.style.backgroundColor = '#e8f5e9';
+                logEntry.innerHTML = `
+                    <span class="event-time">${new Date().toLocaleTimeString()}</span>
+                    <span class="event-type">API_CALL</span>
+                    <span class="event-data">User created: ${username} (${email}) - Waiting for SSE event...</span>
+                `;
+                sseLog.insertBefore(logEntry, sseLog.firstChild);
+            } else {
+                console.error('Failed to create user:', data);
+                alert('Failed to create user: ' + (data.message || data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            alert('Error creating user: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    });
+
+    // Socket.IO connection
+    const socketioLog = document.getElementById('socketio-log');
+    
+    // Wait for socket.js to initialize, then set up Socket.IO handlers
+    function initSocketIOHandlers() {
+        // Check if Socket.IO library is loaded
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO library (io) not found');
+            socketioLog.innerHTML = '<p class="error">Socket.IO library not loaded. Check browser console.</p>';
+            return;
+        }
+        
+        // Use existing socket from socket.js if available, otherwise create new one
+        let socket = window.seedxSocket;
+        if (!socket) {
+            console.log('socket.js not loaded yet, creating new Socket.IO connection...');
+            socket = io();
+            window.seedxSocket = socket;
+        } else {
+            console.log('Using existing Socket.IO connection from socket.js');
+        }
+        
+        socket.on('connect', function() {
+            console.log('Socket.IO connected');
+            socketioLog.innerHTML = '<p style="color: #4ec9b0;">Connected to Socket.IO</p>';
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Socket.IO disconnected');
+            socketioLog.innerHTML = '<p class="error">Socket.IO disconnected</p>';
+        });
+        
+        socket.on('connect_error', function(error) {
+            console.error('Socket.IO connection error:', error);
+            socketioLog.innerHTML = '<p class="error">Socket.IO connection error</p>';
+        });
+        
+        socket.on('status', function(data) {
+            console.log('Socket.IO status:', data);
+            addSocketIOLogEntry('status', data);
+        });
+        
+        socket.on('message', function(data) {
+            console.log('Socket.IO message:', data);
+            addSocketIOLogEntry('message', data);
+        });
+        
+        socket.on('user_event', function(data) {
+            console.log('Socket.IO user_event:', data);
+            addSocketIOLogEntry('user_event', data);
+        });
+        
+        socket.on('state_change', function(data) {
+            console.log('Socket.IO state_change:', data);
+            addSocketIOLogEntry('state_change', data);
+            
+            // Update active users count if present
+            if (data.active_users_count !== undefined) {
+                document.getElementById('active-users-count').textContent = data.active_users_count;
+            }
+        });
+        
+        function addSocketIOLogEntry(type, data) {
+            // Clear initial message if present
+            if (socketioLog.children.length === 1 && socketioLog.children[0].tagName === 'P') {
+                socketioLog.innerHTML = '';
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'event-entry';
+            logEntry.innerHTML = `
+                <span class="event-time">${new Date().toLocaleTimeString()}</span>
+                <span class="event-type">${type}</span>
+                <span class="event-data">${JSON.stringify(data)}</span>
+            `;
+            
+            socketioLog.insertBefore(logEntry, socketioLog.firstChild);
+            
+            // Keep only last 20 entries
+            while (socketioLog.children.length > 20) {
+                socketioLog.removeChild(socketioLog.lastChild);
+            }
+        }
+        
+        // Test buttons
+        document.getElementById('test-socketio-btn').addEventListener('click', function() {
+            if (socket && socket.connected) {
+                socket.emit('message', { text: 'Test message from client', timestamp: new Date().toISOString() });
+            } else {
+                alert('Socket.IO not connected');
+            }
+        });
+        
+        document.getElementById('test-user-event-btn').addEventListener('click', function() {
+            if (socket && socket.connected) {
+                socket.emit('user_event', { action: 'test', data: 'Test user event', timestamp: new Date().toISOString() });
+            } else {
+                alert('Socket.IO not connected');
+            }
+        });
+    }
+    
+    // Initialize Socket.IO handlers after a short delay to ensure socket.js has loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initSocketIOHandlers, 200);
+        });
+    } else {
+        setTimeout(initSocketIOHandlers, 200);
+    }
+</script>
+{% endblock %}

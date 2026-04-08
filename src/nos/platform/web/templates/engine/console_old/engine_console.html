@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <!-- No terminal-theme.css: engine console uses self-contained styles like run.html -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/upload_progress.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/console-run-form.js') }}"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #0c0c0c;
+            color: #cccccc;
+            line-height: 1.35;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+        .terminal {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+        }
+        .header {
+            flex-shrink: 0;
+            border: 1px solid #333;
+            border-left: none;
+            border-right: none;
+            padding: 0.75rem 1rem;
+            background: #1a1a1a;
+        }
+        .header h1 { font-size: 1.1rem; color: #4ec9b0; }
+        .header .hint { font-size: 0.8rem; color: #858585; margin-top: 0.35rem; }
+        .cmd-container {
+            flex: 1;
+            min-height: 0;
+            border: 1px solid #333;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+            background: #0c0c0c;
+            padding: 0.75rem;
+            overflow: auto;
+            font-size: 0.9rem;
+        }
+        .cmd-line { display: flex; align-items: baseline; margin-bottom: 0.25rem; flex-wrap: wrap; }
+        .cmd-prompt { color: #4ec9b0; margin-right: 0.35rem; user-select: none; }
+        .cmd-input-wrap { flex: 1; min-width: 200px; }
+        .cmd-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            outline: none;
+            padding: 0.2rem 0;
+        }
+        .cmd-output {
+            margin: 0.2rem 0 0.4rem 0;
+            padding: 0.2rem 0.45rem;
+            border-bottom: 1px solid #252525;
+            border-left: 2px solid transparent;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .cmd-output.alt { background: rgba(26,26,26,0.5); border-left-color: #333; }
+        .cmd-output.error { color: #f48771; border-left-color: #f48771; }
+        .cmd-output.success { color: #4ec9b0; border-left-color: #4ec9b0; }
+        .cmd-output.warn { color: #dcdcaa; }
+        .cmd-list { margin: 0.3rem 0; padding-left: 1.2rem; }
+        .cmd-list li { margin: 0.15rem 0; }
+        .cmd-section { margin: 0.5rem 0 0.25rem 0; color: #dcdcaa; font-weight: bold; }
+        .form-container { margin: 0.75rem 0; padding: 0.75rem; background: rgba(26,26,26,0.8); border: 1px solid #333; border-left: 3px solid #4ec9b0; }
+        .form-container h3 { color: #4ec9b0; margin-bottom: 0.5rem; }
+        .form-field { margin-bottom: 0.5rem; }
+        .form-field label { display: block; color: #9cdcfe; margin-bottom: 0.2rem; }
+        .form-field input, .form-field select, .form-field textarea { width: 100%; max-width: 400px; padding: 0.35rem 0.5rem; background: #0c0c0c; border: 1px solid #333; color: #ccc; font-family: inherit; }
+        .form-field .help { color: #858585; margin-top: 0.2rem; }
+        .form-container button[type="submit"] { margin-top: 0.4rem; padding: 0.35rem 0.75rem; background: #1a1a1a; border: 1px solid #4ec9b0; color: #4ec9b0; cursor: pointer; font-family: inherit; }
+        .form-container button[type="submit"]:hover { background: rgba(78, 201, 176, 0.2); }
+        .log-entry { margin: 0.25rem 0 0.5rem 0; border-bottom: 1px solid #252525; border-left: 2px solid transparent; }
+        .log-entry-title { padding: 0.2rem 0.5rem; cursor: pointer; user-select: none; color: #9cdcfe; }
+        .log-entry-title:hover { background: rgba(26, 26, 26, 0.5); }
+        .log-entry-title::before { content: '\25B6'; font-size: 0.7em; margin-right: 0.5rem; transition: transform 0.15s; }
+        .log-entry.expanded .log-entry-title::before { transform: rotate(90deg); }
+        .log-entry-json { display: none; padding: 0.35rem 0.5rem; margin: 0 0 0 1rem; background: rgba(12,12,12,0.8); border: 1px solid #333; white-space: pre-wrap; word-break: break-word; overflow-x: auto; color: #ce9178; }
+        .log-entry.expanded .log-entry-json { display: block; }
+        .log-entry.success .log-entry-title { color: #4ec9b0; }
+        .log-tree { font-size: 0.85em; line-height: 1.35; user-select: text; }
+        .log-tree-row { display: flex; align-items: flex-start; min-height: 1.35em; word-break: break-word; }
+        .log-tree-row .log-tree-children { display: none; padding-left: 1.2rem; border-left: 1px solid #333; margin-left: 0.35rem; }
+        .log-tree-row.expanded > .log-tree-toggle::before { transform: rotate(90deg); }
+        .log-tree-row.expanded > .log-tree-children { display: block; }
+        .log-tree-toggle { cursor: pointer; width: 1em; flex-shrink: 0; color: #858585; }
+        .log-tree-toggle::before { content: '\25B6'; font-size: 0.7em; display: inline-block; transition: transform 0.15s; }
+        .log-tree-toggle.empty::before { content: ''; }
+        .log-tree-key { color: #9cdcfe; flex-shrink: 0; margin-right: 0.35rem; }
+        .log-tree-value { color: #ce9178; min-width: 0; }
+        .log-tree-value.string { color: #ce9178; }
+        .log-tree-value.number { color: #b5cea8; }
+        .log-tree-value.boolean { color: #569cd6; }
+        .log-tree-value.null { color: #858585; }
+        .log-tree-preview { color: #858585; cursor: pointer; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+    <h1>Engine Console</h1>
+            <span class="hint">Type <strong>help</strong> and press Enter to see available commands.</span>
+        </div>
+        <div class="cmd-container" id="cmd-container">
+            <div class="cmd-line">
+                <span class="cmd-prompt" id="cmd-prompt">engine&gt;</span>
+                <span class="cmd-input-wrap">
+                    <input type="text" class="cmd-input" id="cmd-input" placeholder=" help | run | list | pub | unpub | exit" autocomplete="off" spellcheck="false">
+                </span>
+            </div>
+        </div>
+    </div>
+    <script>
+(function() {
+    const cmdPrompt = document.getElementById('cmd-prompt');
+    const cmdInput = document.getElementById('cmd-input');
+    const cmdContainer = document.getElementById('cmd-container');
+
+    var outputCount = 0;
+    var commandHistory = [];
+    var historyIndex = -1;
+    var currentRunType = null;
+    var currentRunId = null;
+    var currentOutputMode = 'debug';
+    var currentRunBackground = false;
+
+    function appendOutput(text, className) {
+        var div = document.createElement('div');
+        div.className = 'cmd-output' + (className ? ' ' + className : '');
+        if (outputCount++ % 2 === 1) div.classList.add('alt');
+        div.textContent = text;
+        cmdContainer.appendChild(div);
+        cmdContainer.scrollTop = cmdContainer.scrollHeight;
+    }
+
+    function appendPrompt() {
+        currentRunType = null;
+        currentRunId = null;
+        var line = document.createElement('div');
+        line.className = 'cmd-line';
+        line.innerHTML = '<span class="cmd-prompt">engine&gt;</span><span class="cmd-input-wrap"><input type="text" class="cmd-input" placeholder=" help | run | list | pub | unpub | exit" autocomplete="off" spellcheck="false"></span>';
+        cmdContainer.appendChild(line);
+        var input = line.querySelector('.cmd-input');
+        input.focus();
+        input.addEventListener('keydown', handleKeydown);
+        cmdContainer.scrollTop = cmdContainer.scrollHeight;
+        historyIndex = -1;
+        return input;
+    }
+
+    function renderJsonTree(obj, depth) {
+        depth = depth || 0;
+        var tree = document.createElement('div');
+        tree.className = 'log-tree';
+        if (obj === null || typeof obj !== 'object') {
+            var valSpan = document.createElement('span');
+            valSpan.className = 'log-tree-value' + (obj === null ? ' null' : typeof obj);
+            valSpan.textContent = obj === null ? 'null' : String(obj);
+            tree.appendChild(valSpan);
+            return tree;
+        }
+        var isArray = Array.isArray(obj);
+        var keys = isArray ? obj.map(function(_, i) { return i; }) : Object.keys(obj);
+        keys.forEach(function(key) {
+            var row = document.createElement('div');
+            row.className = 'log-tree-row';
+            var val = obj[key];
+            var isExpandable = val !== null && typeof val === 'object';
+            var toggle = document.createElement('span');
+            toggle.className = 'log-tree-toggle' + (isExpandable ? '' : ' empty');
+            if (isExpandable) {
+                toggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    row.classList.toggle('expanded');
+                });
+            }
+            var keyEl = document.createElement('span');
+            keyEl.className = 'log-tree-key';
+            keyEl.textContent = (isArray ? '[' + key + ']' : key) + ': ';
+            row.appendChild(toggle);
+            row.appendChild(keyEl);
+            if (isExpandable) {
+                var preview = document.createElement('span');
+                preview.className = 'log-tree-preview';
+                preview.textContent = Array.isArray(val) ? 'Array(' + val.length + ')' : 'Object';
+                preview.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    row.classList.toggle('expanded');
+                });
+                row.appendChild(preview);
+                var children = document.createElement('div');
+                children.className = 'log-tree-children';
+                children.appendChild(renderJsonTree(val, depth + 1));
+                row.appendChild(children);
+            } else {
+                var valueSpan = document.createElement('span');
+                valueSpan.className = 'log-tree-value' + (val === null ? ' null' : typeof val);
+                var str = val === null ? 'null' : (typeof val === 'string' ? JSON.stringify(val) : String(val));
+                if (typeof val === 'string' && str.length > 200) str = str.slice(0, 200) + '...';
+                valueSpan.textContent = str;
+                row.appendChild(valueSpan);
+            }
+            tree.appendChild(row);
+        });
+        return tree;
+    }
+
+    function appendToggleEntry(title, data, className) {
+        var entry = document.createElement('div');
+        entry.className = 'log-entry' + (className ? ' ' + className : '');
+        var titleEl = document.createElement('div');
+        titleEl.className = 'log-entry-title';
+        titleEl.textContent = title;
+        var jsonWrap = document.createElement('div');
+        jsonWrap.className = 'log-entry-json';
+        jsonWrap.appendChild(renderJsonTree(data));
+        titleEl.addEventListener('click', function() {
+            entry.classList.toggle('expanded');
+        });
+        entry.appendChild(titleEl);
+        entry.appendChild(jsonWrap);
+        cmdContainer.appendChild(entry);
+        cmdContainer.scrollTop = cmdContainer.scrollHeight;
+    }
+
+    function appendExecutionLog(data) {
+        var msg = data.message || (data.level ? '[' + data.level + '] ' : '') + (data.text || '');
+        if (!msg) msg = '(no message)';
+        if (data.event === 'node_output' && data.elapsed_time) msg += ' (' + data.elapsed_time + ')';
+        appendToggleEntry(msg, data);
+    }
+
+    function ensureSocketAndEmit(event, data) {
+        try {
+            if (typeof io === 'undefined' || !window.seedxSocket) {
+                appendOutput('Socket.IO is required. Please reload the page.', 'error');
+                return false;
+            }
+            if (!window.seedxSocket.connected) {
+                appendOutput('Waiting for Socket.IO connection...', '');
+                window.seedxSocket.once('connect', function() {
+                    window.seedxSocket.emit(event, data);
+                });
+            } else {
+                window.seedxSocket.emit(event, data);
+            }
+            return true;
+        } catch (err) {
+            appendOutput('Error: ' + err.message, 'error');
+            return false;
+        }
+    }
+
+    function stopExecution() {
+        if (!currentRunType || !currentRunId) {
+            appendPrompt();
+            return;
+        }
+        appendOutput('^C', '');
+        if (!ensureSocketAndEmit('engine_stop', { type: currentRunType, id: currentRunId })) {
+            appendPrompt();
+        }
+    }
+
+    function runExecutionInConsole(typeCode, pluginId, background, outputMode) {
+        currentRunType = typeCode;
+        currentRunId = pluginId;
+        currentRunBackground = !!background;
+        currentOutputMode = outputMode || 'debug';
+        var context = {
+            type: typeCode,
+            id: pluginId,
+            background: !!background,
+            debug_mode: currentOutputMode
+        };
+        if (!ensureSocketAndEmit('engine_request_run', context)) {
+            appendPrompt();
+            return;
+        }
+        appendOutput('Execution launch confirmed... (press Ctrl+C to stop)', '');
+        appendOutput('Waiting for input data...', '');
+    }
+
+    function showHelp() {
+        appendOutput('Available commands:', 'success');
+        var sections = [
+            { title: 'Token 1: Command', items: [
+                { name: 'help', desc: 'Show available commands' },
+                { name: 'run', desc: 'Execute plugin (token 2 & 3 required; token 4 & 5 optional, default: --sync debug)' },
+                { name: 'pub', desc: 'Publish plugin (OK → Published); token 2 & 3 required' },
+                { name: 'unpub', desc: 'Unpublish plugin (Published → OK); token 2 & 3 required' },
+                { name: 'exec', desc: 'Alias for run' },
+                { name: 'exit', desc: 'Close this console tab' },
+                { name: 'list', desc: 'List plugins (token 2 optional: all | node | workflow, default: all)' }
+            ]},
+            { title: 'Token 2', items: [
+                { name: 'node | workflow', desc: 'For run, pub, unpub' },
+                { name: 'all | node | workflow', desc: 'For list (default: all)' }
+            ]},
+            { title: 'Token 3', items: [
+                { name: '{node_id} | {workflow_id}', desc: 'For run, pub, unpub' }
+            ]},
+            { title: 'Token 4 (run only)', items: [
+                { name: '--background', desc: 'Run non-blocking' },
+                { name: '--sync', desc: 'Run blocking, interactive (default)' }
+            ]},
+            { title: 'Token 5 (run only)', items: [
+                { name: 'trace', desc: 'Init form and logs (no intermediate node forms)' },
+                { name: 'debug', desc: 'All forms and logs, step-by-step (default)' }
+            ]}
+        ];
+        sections.forEach(function(s) {
+            var div = document.createElement('div');
+            div.className = 'cmd-section';
+            div.textContent = s.title;
+            cmdContainer.appendChild(div);
+            var ul = document.createElement('ul');
+            ul.className = 'cmd-list';
+            s.items.forEach(function(it) {
+                var li = document.createElement('li');
+                li.innerHTML = '<span style="color:#4ec9b0">' + it.name + '</span> — ' + (it.desc || '');
+                ul.appendChild(li);
+            });
+            cmdContainer.appendChild(ul);
+        });
+        appendOutput('Examples:', 'success');
+        appendOutput('  run node request_ws                    → --sync debug');
+        appendOutput('  run workflow if_then_example --background');
+        appendOutput('  list workflow');
+        appendOutput('  pub node my_node   unpub workflow my_wf');
+    }
+
+    function parseTokens(cmd) {
+        var parts = cmd.trim().split(/\s+/);
+        return parts.filter(Boolean);
+    }
+
+    function runList(t2) {
+        var scope = (t2 || 'all').toLowerCase();
+        if (scope !== 'all' && scope !== 'node' && scope !== 'workflow') {
+            appendOutput("list: token 2 must be 'all', 'node', or 'workflow'. Use 'list' or 'list all' for all.", 'error');
+            appendPrompt();
+            return;
+        }
+        var urls = [];
+        if (scope === 'all' || scope === 'node') urls.push({ url: '/api/node/list', key: 'node_id', label: 'Nodes' });
+        if (scope === 'all' || scope === 'workflow') urls.push({ url: '/api/workflow/list', key: 'workflow_id', label: 'Workflows' });
+        if (scope === 'all') urls.push({ url: '/api/assistant/list', key: 'assistant_id', label: 'Assistants' });
+
+        var done = 0;
+        urls.forEach(function(u) {
+            fetch(u.url)
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    var data = res.data || [];
+                    var idKey = u.key;
+                    appendOutput(u.label + ':', 'success');
+                    if (data.length === 0) {
+                        appendOutput('  (none)');
+                    } else {
+                        data.forEach(function(row) {
+                            var id = row[idKey] || row.id || '';
+                            var name = (row.name || '').trim();
+                            appendOutput('  ' + id + (name ? '  ' + name : ''));
+                        });
+                    }
+                    if (++done === urls.length) appendPrompt();
+                })
+                .catch(function(err) {
+                    appendOutput(u.label + ': Error ' + err.message, 'error');
+                    if (++done === urls.length) appendPrompt();
+                });
+        });
+    }
+
+    function runPublish(type, id, warning) {
+        if (warning) appendOutput('Warning: ' + warning, 'warn');
+        appendOutput('Publishing ' + (type === 'nd' ? 'node' : 'workflow') + ' "' + id + '"...', '');
+        fetch('/api/engine/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type, id: id })
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+            if (res.data.success) appendOutput(res.data.message, 'success');
+            else appendOutput(res.data.error || 'Publish failed', 'error');
+        })
+        .catch(function(err) { appendOutput('Error: ' + err.message, 'error'); })
+        .finally(function() { appendPrompt(); });
+    }
+
+    function runUnpublish(type, id, warning) {
+        if (warning) appendOutput('Warning: ' + warning, 'warn');
+        appendOutput('Unpublishing ' + (type === 'nd' ? 'node' : 'workflow') + ' "' + id + '"...', '');
+        fetch('/api/engine/unpublish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type, id: id })
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+            if (res.data.success) appendOutput(res.data.message, 'success');
+            else appendOutput(res.data.error || 'Unpublish failed', 'error');
+        })
+        .catch(function(err) { appendOutput('Error: ' + err.message, 'error'); })
+        .finally(function() { appendPrompt(); });
+    }
+
+    function handleKeydown(e) {
+        var input = e.target;
+        if (e.key === 'c' && e.ctrlKey) {
+            e.preventDefault();
+            if (currentRunType && currentRunId) stopExecution();
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (commandHistory.length === 0) return;
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+            }
+            return;
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+            } else if (historyIndex === 0) {
+                historyIndex = -1;
+                input.value = '';
+            }
+            return;
+        }
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var cmd = input.value.trim();
+        input.disabled = true;
+        input.removeEventListener('keydown', handleKeydown);
+        appendOutput('engine&gt; ' + cmd, '');
+
+        if (!cmd) {
+            appendPrompt();
+            return;
+        }
+        if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== cmd)
+            commandHistory.push(cmd);
+
+        var tokens = parseTokens(cmd);
+        var t1 = tokens[0] ? tokens[0].toLowerCase() : '';
+        var t2 = tokens[1] ? tokens[1].toLowerCase() : '';
+        var t3 = tokens[2];
+        var t4 = tokens[3] ? tokens[3].toLowerCase() : '';
+        var t5 = tokens[4] ? tokens[4].toLowerCase() : '';
+
+        if (t1 === 'help') {
+            showHelp();
+            appendPrompt();
+            return;
+        }
+
+        if (t1 === 'exit') {
+            if (tokens.length > 1) appendOutput('Warning: extra tokens ignored for exit.', 'warn');
+            appendOutput('Closing console...', 'success');
+            setTimeout(function() { window.close(); }, 300);
+            return;
+        }
+
+        if (t1 === 'list') {
+            runList(t2);
+            return;
+        }
+
+        if (t1 === 'pub') {
+            if (t2 !== 'node' && t2 !== 'workflow') {
+                appendOutput("pub: token 2 required and must be 'node' or 'workflow'.", 'error');
+                appendPrompt();
+                return;
+            }
+            if (!t3) {
+                appendOutput('pub: token 3 required (node_id or workflow_id).', 'error');
+                appendPrompt();
+                return;
+            }
+            var typeCode = t2 === 'node' ? 'nd' : 'wk';
+            var warning = tokens.length > 3 ? 'Token 4 & 5 ignored for pub.' : null;
+            runPublish(typeCode, t3, warning);
+            return;
+        }
+
+        if (t1 === 'unpub') {
+            if (t2 !== 'node' && t2 !== 'workflow') {
+                appendOutput("unpub: token 2 required and must be 'node' or 'workflow'.", 'error');
+                appendPrompt();
+                return;
+            }
+            if (!t3) {
+                appendOutput('unpub: token 3 required (node_id or workflow_id).', 'error');
+                appendPrompt();
+                return;
+            }
+            var typeCode = t2 === 'node' ? 'nd' : 'wk';
+            var warning = tokens.length > 3 ? 'Token 4 & 5 ignored for unpub.' : null;
+            runUnpublish(typeCode, t3, warning);
+            return;
+        }
+
+        if (t1 === 'run' || t1 === 'exec') {
+            if (t2 !== 'node' && t2 !== 'workflow') {
+                appendOutput("run: token 2 required and must be 'node' or 'workflow'.", 'error');
+                appendPrompt();
+                return;
+            }
+            if (!t3) {
+                appendOutput('run: token 3 required (node_id or workflow_id).', 'error');
+                appendPrompt();
+                return;
+            }
+            var allowedRunTok = { '--sync': 1, '--background': 1, 'trace': 1, 'debug': 1 };
+            function invalidRunTok(t) { return t && !allowedRunTok[t]; }
+            if (invalidRunTok(t4) || invalidRunTok(t5)) {
+                appendOutput("Invalid token. Use --sync, --background, trace, or debug (positions 4–5).", 'error');
+                appendPrompt();
+                return;
+            }
+            var syncOrBg = '--sync';
+            var outputMode = 'debug';
+            if (t4 === '--background' || t4 === '--sync') syncOrBg = t4;
+            if (['trace', 'debug'].indexOf(t4) >= 0) outputMode = t4;
+            if (['trace', 'debug'].indexOf(t5) >= 0) outputMode = t5;
+            if (t5 === '--background' || t5 === '--sync') syncOrBg = t5;
+            var typeCode = t2 === 'node' ? 'nd' : 'wk';
+            runExecutionInConsole(typeCode, t3, syncOrBg === '--background', outputMode);
+            return;
+        }
+
+        appendOutput("Unknown command '" + t1 + "'. Type help for available commands.", 'error');
+        appendPrompt();
+    }
+
+    cmdInput.addEventListener('keydown', handleKeydown);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'c' && e.ctrlKey && currentRunType && currentRunId) {
+            e.preventDefault();
+            stopExecution();
+        }
+    });
+
+    if (typeof io !== 'undefined' && window.seedxSocket) {
+        window.seedxSocket.on('engine_form_schema', function(payload) {
+            try {
+                var formSchema = payload.form_schema || {};
+                var context = payload.context || {};
+                var isNodeForm = (context.type === 'nd' && context.execution_id) || (context.node_id && context.execution_id);
+                var mode = currentOutputMode;
+                if (isNodeForm && (mode === 'trace' || context.background)) {
+                    ensureSocketAndEmit('engine_form_data', { form_data: {}, context: context });
+                    return;
+                }
+                if (formSchema.fields && formSchema.fields.length > 0) {
+                    EngineRunForm.renderFormFromSchema(formSchema, cmdContainer, function(formData) {
+                        ensureSocketAndEmit('engine_form_data', { form_data: formData, context: context });
+                        if (!isNodeForm && context.background) {
+                            appendOutput('The plugin is running. To view execution status, go to the Jobs list.', 'success');
+                            appendPrompt();
+                        }
+                    }, appendOutput);
+                } else {
+                    ensureSocketAndEmit('engine_form_data', { form_data: {}, context: context });
+                    if (!isNodeForm && context.background) {
+                        appendOutput('The plugin is running. To view execution status, go to the Jobs list.', 'success');
+                        appendPrompt();
+                    } else {
+                        appendOutput('Initializing (no form fields). Running...', 'success');
+                    }
+                }
+            } catch (err) {
+                appendOutput('Error: ' + err.message, 'error');
+            }
+        });
+
+        window.seedxSocket.on('engine_message', function(data) {
+            try {
+                if (currentRunBackground) return;
+                appendOutput(data.message || JSON.stringify(data), data.type === 'success' ? 'success' : '');
+            } catch (_) {}
+        });
+
+        window.seedxSocket.on('engine_error', function(data) {
+            try {
+                appendOutput(data.message || JSON.stringify(data), 'error');
+            } catch (_) {}
+        });
+
+        window.seedxSocket.on('engine_result', function(data) {
+            try {
+                if (!currentRunBackground) {
+                    var title = 'Execution completed';
+                    if (data.elapsed_time) title += ' (' + data.elapsed_time + ')';
+                    appendToggleEntry(title, data, 'success');
+                }
+                appendPrompt();
+            } catch (_) {}
+        });
+
+        window.seedxSocket.on('engine_stopped', function(data) {
+            try {
+                appendOutput(data.message || 'Execution stopped', '');
+                appendPrompt();
+            } catch (_) {}
+        });
+
+        window.seedxSocket.on('execution_log', function(data) {
+            if (currentRunBackground) return;
+            appendExecutionLog(data);
+        });
+    }
+})();
+    </script>
+</body>
+</html>

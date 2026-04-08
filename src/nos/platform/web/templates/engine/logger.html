@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(0, 212, 255, 0.08); border-left: 3px solid var(--app-accent);
+            font-size: 0.9rem; color: var(--app-text-muted);
+        }
+        .placeholder {
+            padding: 3rem;
+            text-align: center;
+            border: 2px dashed var(--app-border);
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        .placeholder-icon { font-size: 4rem; margin-bottom: 1rem; }
+        @media (max-width: 768px) { body { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Logger</h2>
+        <div class="toast-info">View application logs and execution traces.</div>
+        <div class="toast-info">Monitor node, workflow, and assistant executions in real-time.</div>
+        
+        <div class="placeholder">
+            <div class="placeholder-icon">📋</div>
+            <h3>Coming Soon</h3>
+            <p>Log viewer is under development.</p>
+        </div>
+    </div>
+</body>
+</html>

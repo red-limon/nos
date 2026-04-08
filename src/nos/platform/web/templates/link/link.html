@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        body { padding: 2rem; }
+        .dashboard { min-height: 400px; }
+        .toast-info {
+            padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+            background: rgba(78, 201, 176, 0.1); border-left: 3px solid var(--term-accent);
+            font-size: 0.9rem; color: var(--term-muted);
+        }
+        .link-list {
+            margin-top: 1.5rem;
+            border: 1px solid #333;
+            background: #1a1a1a;
+        }
+        .link-item {
+            padding: 1rem;
+            border-bottom: 1px solid #333;
+        }
+        .link-item:last-child {
+            border-bottom: none;
+        }
+        .link-name {
+            color: #4ec9b0;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .link-desc {
+            color: #9cdcfe;
+            margin-top: 0.25rem;
+            font-size: 0.9rem;
+        }
+        .link-module {
+            color: #858585;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            font-family: 'Consolas', monospace;
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Link Registry</h2>
+        <div class="toast-info">In-memory link registry.</div>
+        <div class="toast-info">Links define deterministic routing logic between nodes, layers, or assistants.</div>
+        <div class="toast-info">Available link types are listed below. Custom links can be defined in plugins.</div>
+        
+        <div class="link-list">
+            <div class="link-item">
+                <div class="link-name">AlwaysLink</div>
+                <div class="link-desc">Always routes to the target node. Use for simple sequential workflows.</div>
+                <div class="link-module">core.link</div>
+            </div>
+            <div class="link-item">
+                <div class="link-name">ConditionalLink</div>
+                <div class="link-desc">Routes based on conditional logic (if/else branching).</div>
+                <div class="link-module">nos.plugins.old.if_then_workflow</div>
+            </div>
+            <div class="link-item">
+                <div class="link-name">LoopLink</div>
+                <div class="link-desc">Implements loop logic for iterative workflows.</div>
+                <div class="link-module">nos.plugins.old.loop_workflow</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

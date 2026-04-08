@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{% if request.path.startswith('/redlimon') %}redlemon{% else %}nos{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; box-sizing: border-box; }
+        body { padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .dashboard {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 0 0.75rem 0.75rem;
+            align-self: stretch;
+        }
+        .breadcrumb-nav {
+            flex: none;
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.35rem 0 0.5rem; margin: 0 0 0.75rem;
+            font-size: 0.9rem; color: var(--app-text-muted);
+            border-bottom: 1px solid var(--app-border);
+        }
+        .breadcrumb-nav span.current { color: var(--app-accent); font-weight: 500; }
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--app-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 0.75rem 0;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        .assistant-card {
+            background: var(--term-panel);
+            border: 1px solid var(--term-border);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .assistant-card:hover {
+            border-color: var(--term-accent);
+            box-shadow: 0 0 12px rgba(78, 201, 176, 0.1);
+        }
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--term-text);
+            margin: 0 0 0.25rem 0;
+        }
+        .card-description {
+            font-size: 0.8rem;
+            color: var(--term-muted);
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+        }
+        .card-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--term-muted);
+            border-top: 1px solid var(--term-border);
+            padding-top: 0.75rem;
+        }
+        .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .meta-label {
+            color: var(--app-text-muted);
+            min-width: 90px;
+        }
+        .meta-value {
+            color: var(--term-text);
+        }
+        .meta-value.scheduled {
+            color: var(--term-accent);
+        }
+        .meta-value.link {
+            color: var(--app-accent);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .meta-value.link:hover {
+            text-decoration: underline;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .status-badge.success { background: rgba(166, 227, 161, 0.15); color: #a6e3a1; }
+        .status-badge.scheduled { background: rgba(137, 180, 250, 0.15); color: #89b4fa; }
+        .status-badge.running { background: rgba(249, 226, 175, 0.15); color: #f9e2af; }
+        .status-badge.warning { background: rgba(250, 179, 135, 0.2); color: #fab387; }
+        .status-badge.pending { background: rgba(203, 166, 247, 0.2); color: #cba6f7; }
+        .status-badge.online { background: rgba(166, 227, 161, 0.2); color: #a6e3a1; animation: pulse-online 2s ease-in-out infinite; }
+        .status-badge.critical { background: rgba(243, 139, 168, 0.3); color: #f38ba8; animation: pulse-critical 0.8s ease-in-out infinite; }
+        @keyframes pulse-online { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes pulse-critical { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
+        @media (max-width: 768px) {
+            .dashboard { padding: 0 0.5rem 0.5rem; }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <span class="current">Apps</span>
+        </nav>
+
+        <h3 class="section-title">⭐ Favorite Apps</h3>
+
+        <div class="cards-grid">
+            <!-- Card 1: Daily Report -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">📊 Daily Sales Report</h4></div>
+                    <span class="status-badge success">Success</span>
+                </div>
+                <p class="card-description">Generates daily sales summary with KPIs, top products, and regional breakdown. Sends email to sales team.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Today, 08:00</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View execution log</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Tomorrow, 08:00</span></div>
+                </div>
+            </div>
+
+            <!-- Card 2: Data Backup -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">💾 Database Backup</h4></div>
+                    <span class="status-badge success">Success</span>
+                </div>
+                <p class="card-description">Automated backup of production database to cloud storage. Includes compression and integrity check.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Yesterday, 02:00</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View execution log</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Today, 02:00</span></div>
+                </div>
+            </div>
+
+            <!-- Card 3: Invoice Generator -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">🧾 Invoice Generator</h4></div>
+                    <span class="status-badge scheduled">Scheduled</span>
+                </div>
+                <p class="card-description">Generates and sends monthly invoices to all active clients. Integrates with accounting system.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Feb 1, 2026</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View execution log</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Mar 1, 2026</span></div>
+                </div>
+            </div>
+
+            <!-- Card 4: Email Classifier -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">📧 Email Classifier</h4></div>
+                    <span class="status-badge running">Running</span>
+                </div>
+                <p class="card-description">AI-powered email classification and routing. Analyzes incoming emails and assigns to appropriate teams.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Now (in progress)</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View live output</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value">Continuous (every 5 min)</span></div>
+                </div>
+            </div>
+
+            <!-- Card 5: Strategic News -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">📰 Strategic News</h4></div>
+                    <span class="status-badge success">Success</span>
+                </div>
+                <p class="card-description">Aggregates and analyzes industry news, competitor updates, and market trends. Delivers daily executive briefing.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Today, 07:00</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View execution log</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Tomorrow, 07:00</span></div>
+                </div>
+            </div>
+
+            <!-- Card 6: Budget Monitor -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">💰 Budget Monitor</h4></div>
+                    <span class="status-badge warning">Alert</span>
+                </div>
+                <p class="card-description">Monitors department budgets and spending patterns. <strong style="color: #f9e2af;">⚠️ Marketing budget at 80% - €24,000 of €30,000 spent.</strong></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Today, 09:30</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View budget report</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Today, 12:00</span></div>
+                </div>
+            </div>
+
+            <!-- Card 7: Account Payable -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">📋 Account Payable</h4></div>
+                    <span class="status-badge pending">3 Pending</span>
+                </div>
+                <p class="card-description">Automated supplier invoice approval workflow. <span style="color: #a6e3a1;">✓ 10 invoices auto-approved.</span> <strong style="color: #fab387;">⚠️ 3 require manual review.</strong></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last run:</span><span class="meta-value">Today, 10:15</span></div>
+                    <div class="meta-row"><span class="meta-label">Result:</span><a href="#" class="meta-value link" onclick="return false;">View pending approvals</a></div>
+                    <div class="meta-row"><span class="meta-label">Next run:</span><span class="meta-value scheduled">Today, 14:00</span></div>
+                </div>
+            </div>
+
+            <!-- Card 8: Quality Expert -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">🎯 Quality Expert</h4></div>
+                    <span class="status-badge online">Online</span>
+                </div>
+                <p class="card-description">AI knowledge assistant specialized in ISO 9001, quality management systems, audits, and continuous improvement. Ask questions anytime.</p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Type:</span><span class="meta-value">💬 Chat assistant</span></div>
+                    <div class="meta-row"><span class="meta-label">Knowledge:</span><span class="meta-value">ISO 9001, QMS, PDCA, Audits</span></div>
+                    <div class="meta-row"><span class="meta-label">Action:</span><a href="#" class="meta-value link" onclick="return false;">Start conversation →</a></div>
+                </div>
+            </div>
+
+            <!-- Card 9: Travel Assistant -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">✈️ Travel Assistant</h4></div>
+                    <span class="status-badge warning">Delay</span>
+                </div>
+                <p class="card-description">Monitors your upcoming flights and travel bookings. <strong style="color: #f38ba8;">⚠️ Flight AZ1284 (17:00 → FCO) delayed by 2 hours. New departure: 19:00.</strong></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Last check:</span><span class="meta-value">5 min ago</span></div>
+                    <div class="meta-row"><span class="meta-label">Flight:</span><span class="meta-value">MXP → FCO · Gate B12</span></div>
+                    <div class="meta-row"><span class="meta-label">Action:</span><a href="#" class="meta-value link" onclick="return false;">View trip details →</a></div>
+                </div>
+            </div>
+
+            <!-- Card 10: Home Guardian -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">🏠 Home Guardian</h4></div>
+                    <span class="status-badge critical">Alert!</span>
+                </div>
+                <p class="card-description">Smart home security monitoring with AI-powered detection. <strong style="color: #f38ba8;">🚨 Motion detected at front door! Person identified: Unknown.</strong></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Event:</span><span class="meta-value">Today, 14:32</span></div>
+                    <div class="meta-row"><span class="meta-label">Camera:</span><span class="meta-value">Front Door · Ring Doorbell</span></div>
+                    <div class="meta-row"><span class="meta-label">Action:</span><a href="#" class="meta-value link" onclick="return false;">View live feed →</a></div>
+                </div>
+            </div>
+
+            <!-- Card 11: Smart Home -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">🧺 Smart Home</h4></div>
+                    <span class="status-badge scheduled">Scheduled</span>
+                </div>
+                <p class="card-description">Home automation assistant for appliances and energy management. <span style="color: #89b4fa;">⏰ Washing machine scheduled to start at 22:00 (off-peak tariff).</span></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Device:</span><span class="meta-value">Samsung WW90 · Laundry Room</span></div>
+                    <div class="meta-row"><span class="meta-label">Program:</span><span class="meta-value">Cotton 40° · Eco Mode</span></div>
+                    <div class="meta-row"><span class="meta-label">Action:</span><a href="#" class="meta-value link" onclick="return false;">Manage schedules →</a></div>
+                </div>
+            </div>
+
+            <!-- Card 12: Virtual Secretary -->
+            <div class="assistant-card">
+                <div class="card-header">
+                    <div><h4 class="card-title">👩‍💼 Virtual Secretary</h4></div>
+                    <span class="status-badge pending">3 New</span>
+                </div>
+                <p class="card-description">AI-powered calendar management and appointment scheduling. <strong style="color: #cba6f7;">📬 3 new meeting requests await your approval.</strong></p>
+                <div class="card-meta">
+                    <div class="meta-row"><span class="meta-label">Pending:</span><span class="meta-value">M. Rossi, A. Bianchi, Tech Team</span></div>
+                    <div class="meta-row"><span class="meta-label">Next free:</span><span class="meta-value">Tomorrow, 10:00 - 11:30</span></div>
+                    <div class="meta-row"><span class="meta-label">Action:</span><a href="#" class="meta-value link" onclick="return false;">Review requests →</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

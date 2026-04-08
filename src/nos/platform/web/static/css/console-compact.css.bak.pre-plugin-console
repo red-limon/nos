@@ -1,0 +1,401 @@
+/**
+ * Engine Console - Compact / Mobile UI
+ * Same functionality as engine_console.html, optimized for small screens and touch.
+ * Applied when body has class "console-compact".
+ */
+
+/* -----------------------------------------------------------------------------
+   Safe areas (notched devices)
+   ----------------------------------------------------------------------------- */
+body.console-compact {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+body.console-compact .console-container {
+    padding-top: env(safe-area-inset-top);
+}
+
+/* -----------------------------------------------------------------------------
+   Header - taller, touch-friendly
+   ----------------------------------------------------------------------------- */
+body.console-compact .console-header {
+    min-height: 44px;
+    height: auto;
+    padding: 6px 8px 6px 0;
+    flex-wrap: wrap;
+}
+
+body.console-compact .header-logo {
+    width: 36px;
+    min-width: 36px;
+    padding: 4px;
+}
+
+body.console-compact .header-logo .logo-icon {
+    width: 22px;
+    height: 22px;
+}
+
+body.console-compact .menu-trigger {
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 13px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.console-compact .menu-dropdown {
+    min-width: 200px;
+    max-width: min(320px, calc(100vw - 24px));
+    max-height: 70vh;
+    overflow-y: auto;
+    left: 0;
+    right: auto;
+}
+
+body.console-compact .menu-option {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+}
+
+body.console-compact .menu-submenu {
+    min-width: 180px;
+    max-width: min(280px, calc(100vw - 48px));
+    left: 0;
+    right: auto;
+    top: 100%;
+    margin-top: -44px;
+}
+
+/* On very narrow screens, submenu below */
+@media (max-width: 480px) {
+    body.console-compact .menu-option.has-submenu:hover > .menu-submenu,
+    body.console-compact .menu-option.has-submenu:focus-within > .menu-submenu {
+        left: 0;
+        top: 100%;
+        margin-top: 2px;
+    }
+}
+
+body.console-compact .header-status {
+    padding: 0 12px;
+    min-height: 36px;
+    align-items: center;
+}
+
+body.console-compact .status-connection {
+    font-size: 12px;
+}
+
+/* Hide status text on very small to save space; keep dot */
+@media (max-width: 360px) {
+    body.console-compact .header-status #status-text {
+        display: none;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   Tabs - full width, touch-friendly
+   ----------------------------------------------------------------------------- */
+body.console-compact .panel-tabs {
+    padding: 6px 8px;
+    gap: 4px;
+    min-height: 44px;
+    align-items: stretch;
+}
+
+body.console-compact .panel-tabs button {
+    flex: 1;
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 13px;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.console-compact .panel-tabs button .tab-icon {
+    font-size: 16px;
+    margin-right: 6px;
+}
+
+/* Optional: icon-only tabs on very narrow */
+@media (max-width: 380px) {
+    body.console-compact .panel-tabs button span:not(.tab-icon) {
+        display: none;
+    }
+    body.console-compact .panel-tabs button .tab-icon {
+        margin-right: 0;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   Split view - disabled in compact; always use tabs
+   ----------------------------------------------------------------------------- */
+body.console-compact.layout-split .panel-tabs {
+    display: flex !important;
+}
+
+body.console-compact.layout-split .panel-tab.active {
+    display: flex !important;
+}
+
+body.console-compact.layout-split .split-container {
+    display: none !important;
+}
+
+/* -----------------------------------------------------------------------------
+   Tab content area - min height for small screens
+   ----------------------------------------------------------------------------- */
+body.console-compact .panel-tab {
+    min-height: 200px;
+}
+
+body.console-compact .panel-tab.active {
+    min-height: 50vh;
+}
+
+/* -----------------------------------------------------------------------------
+   Toolbars - larger touch targets
+   ----------------------------------------------------------------------------- */
+body.console-compact .tab-toolbar {
+    min-height: 44px;
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body.console-compact .tab-toolbar .toolbar-btn {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.console-compact .tab-toolbar .toolbar-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+body.console-compact .tab-toolbar .toolbar-separator {
+    height: 24px;
+    margin: 0 4px;
+}
+
+/* Split panel toolbars (when split is used on larger compact) */
+body.console-compact .split-toolbar .toolbar-btn {
+    min-width: 40px;
+    min-height: 40px;
+    width: 40px;
+    height: 40px;
+}
+
+/* -----------------------------------------------------------------------------
+   Filter dropdown - full width on small screens
+   ----------------------------------------------------------------------------- */
+body.console-compact .filter-dropdown {
+    min-width: 200px;
+    max-width: min(280px, calc(100vw - 24px));
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+body.console-compact .filter-option {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+}
+
+body.console-compact .filter-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+}
+
+/* -----------------------------------------------------------------------------
+   Console output - readable on small screens
+   ----------------------------------------------------------------------------- */
+body.console-compact .console-output {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+body.console-compact .console-empty {
+    padding: 24px 16px;
+    font-size: 13px;
+}
+
+body.console-compact .console-empty-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+body.console-compact .log-entry {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+/* Compact log layout on small: stack or shorten */
+@media (max-width: 480px) {
+    body.console-compact .log-timestamp {
+        font-size: 10px;
+    }
+    body.console-compact .log-entry {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   Code editor - usable height, readable font
+   ----------------------------------------------------------------------------- */
+body.console-compact .code-editor-wrap {
+    min-height: 240px;
+}
+
+body.console-compact #code-editor,
+body.console-compact #split-code-editor {
+    min-height: 240px;
+}
+
+body.console-compact #code-editor .cm-editor,
+body.console-compact #split-code-editor .cm-editor {
+    min-height: 240px;
+}
+
+body.console-compact #code-editor .cm-scroller,
+body.console-compact #split-code-editor .cm-scroller {
+    font-size: 13px;
+}
+
+body.console-compact #code-editor .cm-content,
+body.console-compact #split-code-editor .cm-content {
+    padding: 10px 12px;
+}
+
+body.console-compact .code-status {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* -----------------------------------------------------------------------------
+   Explorer offcanvas - full width on small screens
+   ----------------------------------------------------------------------------- */
+body.console-compact .explorer-offcanvas {
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (min-width: 600px) {
+    body.console-compact .explorer-offcanvas {
+        width: 380px;
+        max-width: 90vw;
+    }
+}
+
+body.console-compact .explorer-header {
+    min-height: 48px;
+    padding: 12px 14px;
+}
+
+body.console-compact .explorer-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    font-size: 24px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.console-compact .explorer-panel-header {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 12px;
+}
+
+body.console-compact .tree-item {
+    min-height: 40px;
+    padding: 8px 10px 8px 0;
+    font-size: 13px;
+}
+
+body.console-compact .tree-indent {
+    width: 20px;
+}
+
+body.console-compact .tree-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+}
+
+/* Explorer backdrop - full screen tap to close */
+body.console-compact .explorer-backdrop {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* -----------------------------------------------------------------------------
+   Split panel (when enabled on tablet-sized compact)
+   ----------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+    body.console-compact.layout-split .split-container {
+        display: flex !important;
+    }
+    body.console-compact.layout-split .panel-tabs {
+        display: none;
+    }
+    body.console-compact.layout-split .panel-tab {
+        display: none !important;
+    }
+}
+
+body.console-compact .split-panel-header {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+body.console-compact .split-resizer {
+    width: 8px;
+    min-width: 8px;
+}
+
+body.console-compact .split-resizer::before {
+    left: -8px;
+    right: -8px;
+}
+
+/* -----------------------------------------------------------------------------
+   Scrollbars - slightly wider for touch
+   ----------------------------------------------------------------------------- */
+body.console-compact .console-output::-webkit-scrollbar,
+body.console-compact .explorer-panel-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+body.console-compact .file-tree::-webkit-scrollbar,
+body.console-compact .outline-tree::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* -----------------------------------------------------------------------------
+   Prevent zoom on input focus (iOS)
+   ----------------------------------------------------------------------------- */
+/* iOS: prevent zoom on focus for form controls (optional) */
+@media (max-width: 768px) {
+    body.console-compact select,
+    body.console-compact input:not([type="checkbox"]):not([type="radio"]),
+    body.console-compact textarea {
+        font-size: 16px !important;
+    }
+}
+
+body.console-compact #code-editor .cm-scroller,
+body.console-compact #split-code-editor .cm-scroller {
+    font-size: 14px;
+}

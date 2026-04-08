@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="nos">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/console-v2.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body class="console-v2">
+    <div class="explorer-backdrop" id="explorer-backdrop"></div>
+
+    <div class="console-container">
+        <!-- IDE Menu Bar -->
+        <header class="console-header">
+            <!-- Left Section: Logo + Menu -->
+            <div class="header-left">
+                <!-- Logo: nOS + Terminal icon -->
+                <div class="header-logo">
+                    <span class="header-logo-text">nOS</span>
+                    <svg class="logo-icon logo-icon-terminal" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true">
+                        <rect x="2" y="4" width="20" height="16" rx="1"/>
+                        <path d="M6 9h12M6 13h8"/>
+                    </svg>
+                </div>
+                <nav class="menu-bar">
+                <!-- Workspace menu -->
+                <div class="menu-item" data-menu="console">
+                    <button class="menu-trigger" type="button">Workspace</button>
+                    <div class="menu-dropdown">
+                        <div class="menu-option has-submenu">
+                            <span>Preferences</span>
+                            <span class="arrow">▶</span>
+                            <div class="menu-submenu">
+                                <div class="menu-option has-submenu">
+                                    <span>Themes</span>
+                                    <span class="arrow">▶</span>
+                                    <div class="menu-submenu">
+                                        <button class="menu-option active" data-theme="nos" type="button">
+                                            <span>Dark</span>
+                                            <span class="toggle-indicator"></span>
+                                        </button>
+                                        <button class="menu-option" data-theme="light" type="button">
+                                            <span>Light</span>
+                                            <span class="toggle-indicator"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-save" type="button" title="Save .wks + .out under ~/.nos/drive/@user/session (not directly under @user — open the session folder)">
+                            <span>Save session</span>
+                            <span class="shortcut">Ctrl+S</span>
+                        </button>
+                        <button class="menu-option" id="menu-save-as" type="button" title="Save workspace session and output with a new base file name">
+                            <span>Save session as…</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-new-window" type="button" data-url="{{ url_for('web.engine_console_v2') }}" title="Open the workspace console in a new browser tab">
+                            <span>New Window</span>
+                            <span class="shortcut">Ctrl+Shift+N</span>
+                        </button>
+                        <div class="menu-separator"></div>
+                        <button class="menu-option" id="menu-close" type="button">
+                            <span>Close</span>
+                            <span class="shortcut">Ctrl+W</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- History: execution log tab (moved from panel tabs) -->
+                <div class="menu-item" data-menu="history">
+                    <button class="menu-trigger" type="button" id="menu-history" title="Open Execution History">History</button>
+                </div>
+
+                </nav>
+            </div>
+            
+            <!-- Status (right side) -->
+            <div class="header-status">
+                <div class="status-connection">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Disconnected</span>
+                    <span id="status-session-id" class="status-session-id" aria-hidden="true"></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="console-body-main">
+        <div class="console-v2-workbench">
+            <!-- Split 1: Explorer dock (Plugins explorer | Drive | Apps) -->
+            <aside class="explorer-offcanvas open" id="explorer-offcanvas">
+                <div class="explorer-content">
+                    <div class="v2-left-dock-toolbar">
+                        <nav class="v2-left-tab-bar" role="tablist" aria-label="Explorer areas">
+                            <!-- Was: Project explorer — full repo tree (GET /api/console/project-tree). Now: plugin dev root (GET /api/console/plugins-explorer-tree). -->
+                            <button type="button" class="v2-left-tbtn active" data-v2-left-tab="plugins" title="Plugins explorer — plugin dev folder (PLUGIN_PATH; default ~/.nos/plugins)" aria-label="Plugins explorer — plugin dev folder (PLUGIN_PATH; default ~/.nos/plugins)">
+                                <span class="v2-left-tbtn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.5 4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg></span>
+                            </button>
+                            <!-- Drive: cartella in SVG currentColor (come gli altri tab), non emoji gialla -->
+                            <button type="button" class="v2-left-tbtn" data-v2-left-tab="workspace" title="Drive — saved workspace (.wks) and execution output (.out) under …/drive/@user/session" aria-label="Drive — saved workspace (.wks) and execution output (.out) under drive session folder">
+                                <span class="v2-left-tbtn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.9-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span>
+                            </button>
+                            <button type="button" class="v2-left-tbtn" data-v2-left-tab="apps" title="Apps — shortcuts and entry points" aria-label="Apps — shortcuts and entry points">
+                                <span class="v2-left-tbtn__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span>
+                            </button>
+                        </nav>
+                        <button type="button" class="v2-icon-btn v2-plugins-explorer-refresh" id="v2-plugins-explorer-refresh" title="Reload plugin explorer tree" aria-label="Reload plugin explorer tree">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                        </button>
+                        <button type="button" class="v2-icon-btn v2-toggle-left-dock" id="v2-toggle-left" title="Collapse / expand left panel" aria-label="Collapse left panel">◀</button>
+                    </div>
+                    <div class="v2-left-pane v2-left-pane--plugins active" data-v2-left-pane="plugins">
+                        <div class="explorer-panel" id="explorer-files-panel" style="flex: 1;">
+                            <div class="explorer-sidebar-head explorer-view-tabs--legacy" aria-hidden="true">
+                                <nav class="explorer-view-tabs" role="tablist" aria-label="Explorer source">
+                                    <button type="button" role="tab" class="explorer-view-tab active" data-explorer-view="project" id="explorer-tab-project" aria-selected="true" title="Plugin packages (project layout)">Project</button>
+                                    <button type="button" role="tab" class="explorer-view-tab" data-explorer-view="workspace" id="explorer-tab-workspace" aria-selected="false" title="Saved sessions">Workspace</button>
+                                </nav>
+                            </div>
+                            <div class="explorer-panel-content explorer-panel-content--tabs">
+                                <div class="explorer-view-pane active" id="explorer-view-project" role="tabpanel" aria-labelledby="explorer-tab-project">
+                                    <p class="explorer-project-hint" id="explorer-project-hint" hidden></p>
+                                    <div class="file-tree file-tree--project" id="file-tree">
+                                        <div class="tree-muted">Plugin dev tree (PLUGIN_PATH or ~/.nos/plugins).</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="explorer-resizer" id="explorer-resizer"></div>
+                        <div class="explorer-panel" id="explorer-outline-panel" style="flex: 1;">
+                            <div class="explorer-panel-header" data-panel="outline">
+                                <span class="collapse-icon">▼</span>
+                                <span>Outline</span>
+                            </div>
+                            <div class="explorer-panel-content">
+                                <div class="outline-tree" id="outline-tree">
+                                    <div class="outline-empty">Open a file to see its outline</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-left-pane" data-v2-left-pane="workspace" hidden>
+                        <div class="explorer-view-pane active" id="explorer-view-workspace" role="tabpanel" aria-labelledby="explorer-tab-workspace">
+                            <p class="explorer-workspace-hint" id="explorer-workspace-hint"></p>
+                            <div class="file-tree file-tree--drive explorer-drive-tree" id="explorer-workspace-tree">
+                                <div class="tree-muted">Files are stored in the <strong>session</strong> subfolder: <code>…/drive/@user/session/*.wks</code> and <code>*.out</code> (not in the parent <code>@user</code> folder). Click <code>.wks</code> to restore the full session; <code>.out</code> opens execution outputs in the workspace panel.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-left-pane" data-v2-left-pane="apps" hidden>
+                        <div class="v2-apps-placeholder">
+                            <p><strong>Apps</strong></p>
+                            <p>Shortcuts to workflows and app entry points will appear here.</p>
+                            <p><a href="{{ url_for('web.app_page') }}" target="_blank" rel="noopener noreferrer">Open Apps</a></p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="v2-resizer v2-resizer--left" id="v2-resizer-left" title="Resize"></div>
+
+            <button type="button" class="v2-expand-rail v2-expand-rail--left" id="v2-expand-left" title="Show Explorer panel" aria-label="Show Explorer panel">▶</button>
+
+            <!-- Split 2: Center (Workspace top | Terminal + Runtime bottom) -->
+            <div class="console-v2-center v2-center-stack">
+                <div class="v2-center-top">
+                    <div class="v2-workspace-chrome panel-tabs-workspace-group" id="panel-tabs-workspace-group">
+                        <div id="workspace-doc-bar" class="workspace-doc-bar workspace-doc-bar--v2" role="tablist" aria-label="Open documents" hidden>
+                            <div class="workspace-doc-bar-inner" id="workspace-doc-bar-inner"></div>
+                        </div>
+                        <ul class="workspace-rail-doc-list" id="workspace-rail-doc-list" role="list" aria-label="Open workspace documents"></ul>
+                    </div>
+                    <!-- Tab: Workspace -->
+                    <div id="tab-workspace" class="panel-tab active" data-section="workspace">
+                        <div id="workspace-shell" class="workspace-shell workspace-shell--document-stage" data-workspace-kind="none">
+                            <div id="workspace-center-header" class="split-panel-header workspace-header" hidden>
+                                <span class="panel-title" id="workspace-panel-title" title="">
+                                    <span id="workspace-title-icon-slot" class="workspace-title-icon-slot" aria-hidden="true"><span class="workspace-title-icon-default">⟨⟩</span></span>
+                                    <span id="workspace-title-text">Workspace</span>
+                                </span>
+                                <div class="split-toolbar workspace-toolbar workspace-toolbar--python workspace-python-host" id="workspace-toolbar-python" hidden aria-hidden="true">
+                                    <span class="code-cursor-pos" id="code-cursor-pos"></span>
+                                    <button class="toolbar-btn" id="btn-edit-toggle" title="Enable editing">✎</button>
+                                    <button class="toolbar-btn saved" id="btn-save-file" title="Saved">✓</button>
+                                    <button class="toolbar-btn run" id="btn-run-code" title="Run code (F5)">
+                                        <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                                    </button>
+                                    <button class="toolbar-btn ai" id="btn-ai-assist" title="AI Code Assistant">
+                                        <svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.5"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="v2-center-document-stage" class="split-panel-content workspace-content v2-center-document-stage">
+                                <div id="workspace-pane-python" class="workspace-pane workspace-pane--python workspace-python-host" data-workspace-renderer="python" hidden aria-hidden="true">
+                                    <div class="code-editor-wrap">
+                                        <div id="code-editor" data-readonly="true"></div>
+                                    </div>
+                                </div>
+                                <div id="workspace-pane-execution" class="workspace-pane workspace-pane--execution" hidden>
+                                    <div class="execution-doc-shell execution-doc-shell--workspace">
+                                        <div class="execution-doc-layout" id="workspace-execution-doc-layout">
+                                            <div class="execution-doc-main">
+                                                <div class="execution-doc-sheet">
+                                                    <textarea id="workspace-execution-body" class="execution-doc-editor" spellcheck="false" placeholder="Execution result"></textarea>
+                                                    <div id="workspace-execution-html-preview" class="execution-result-html-preview" hidden></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="workspace-empty-overlay" class="workspace-empty-overlay workspace-empty-overlay--document" aria-hidden="false">
+                                    <div class="workspace-empty-brand workspace-empty-brand--document">
+                                        <span class="workspace-empty-brand__ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+                                        <span class="workspace-empty-brand__label">Documents</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="v2-resizer v2-resizer--middle" id="v2-resizer-middle" title="Resize vertical split"></div>
+
+                <div class="v2-center-bottom">
+                    <div class="v2-bottom-tabbar">
+                        <nav class="panel-tabs panel-tabs--bottom" aria-label="Terminal, Runtime, Output, Metrics">
+                            <button type="button" data-tab="console" class="active">
+                                <span class="tab-icon">&gt;_</span>
+                                <span>Terminal</span>
+                            </button>
+                            <button type="button" data-tab="runtime">
+                                <span class="tab-icon">◆</span>
+                                <span>Runtime</span>
+                            </button>
+                            <button type="button" data-tab="output">
+                                <span class="tab-icon tab-icon--json" aria-hidden="true">{ }</span>
+                                <span>Output</span>
+                            </button>
+                            <button type="button" data-tab="metrics" title="Live CPU &amp; RAM (worker process)">
+                                <span class="tab-icon tab-icon-svg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-6"/></svg></span>
+                                <span>Metrics</span>
+                            </button>
+                        </nav>
+                        <div class="v2-bottom-tabbar__toggle">
+                            <button type="button" class="v2-icon-btn v2-toggle-bottom-btn" id="v2-toggle-bottom" title="Collapse or expand bottom panel (Terminal / Runtime / Output / Metrics)" aria-expanded="true" aria-controls="v2-bottom-panels">▼</button>
+                        </div>
+                    </div>
+                    <div class="v2-bottom-panels" id="v2-bottom-panels">
+                        <div id="tab-console" class="panel-tab panel-tab--terminal-group active" data-section="terminal">
+                            <main class="console-output" id="console-output">
+                                <div class="console-empty" id="console-empty">
+                                    <div class="console-empty-icon">&gt;_</div>
+                                    <div>Waiting for events...</div>
+                                    <div style="margin-top: 8px; font-size: 11px;">Connect to Socket.IO to see real-time logs</div>
+                                </div>
+                            </main>
+                            <div id="output-panel" class="output-panel output-panel--legacy" hidden aria-hidden="true"></div>
+                            <div class="output-empty" id="output-empty" hidden></div>
+                        </div>
+                        <div id="tab-runtime" class="panel-tab" data-section="runtime">
+                            <div class="v2-runtime-placeholder">
+                                <p class="v2-runtime-title">Runtime</p>
+                                <p>Engine process, plugin lifecycle, and run diagnostics will surface here in a future revision.</p>
+                                <p class="v2-runtime-hint">Live command output and execution events remain in the <strong>Terminal</strong> tab above.</p>
+                            </div>
+                        </div>
+                        <div id="tab-output" class="panel-tab" data-section="output">
+                            <div class="v2-output-json-panel">
+                                <div class="v2-output-json-panel__head">
+                                    <span class="v2-output-json-panel__title">Full result (JSON)</span>
+                                    <span class="v2-output-json-panel__subtitle">NodeExecutionResult / WorkflowExecutionResult</span>
+                                </div>
+                                <div id="v2-output-json-tree" class="v2-output-json-tree" role="tree" aria-label="Execution result JSON tree"></div>
+                            </div>
+                        </div>
+                        <div id="tab-metrics" class="panel-tab" data-section="metrics" role="tabpanel" aria-label="Worker process metrics">
+                            <div class="v2-metrics-panel">
+                                <header class="v2-metrics-panel__head">
+                                    <div class="v2-metrics-panel__titles">
+                                        <span class="v2-metrics-panel__title">Worker telemetry</span>
+                                        <span class="v2-metrics-panel__subtitle">OS process sampling (1 Hz) · <span id="v2-metrics-socket-status">—</span></span>
+                                    </div>
+                                    <div class="v2-metrics-panel__meta">
+                                        <span class="v2-metrics-kpi" title="execution_id"><span class="v2-metrics-kpi__label">run</span> <code id="v2-metrics-exec-id">—</code></span>
+                                        <span class="v2-metrics-kpi"><span class="v2-metrics-kpi__label">CPU</span> <strong id="v2-metrics-cpu-now">—</strong></span>
+                                        <span class="v2-metrics-kpi"><span class="v2-metrics-kpi__label">RAM</span> <strong id="v2-metrics-ram-now">—</strong></span>
+                                        <span class="v2-metrics-kpi v2-metrics-kpi--muted"><span class="v2-metrics-kpi__label">samples</span> <span id="v2-metrics-samples">0</span></span>
+                                        <button type="button" class="v2-metrics-clear-btn" id="v2-metrics-clear" title="Clear charts">Reset</button>
+                                    </div>
+                                </header>
+                                <p class="v2-metrics-hint">Charts update from <code>system_metric</code> events while a workflow or node runs in a worker process.</p>
+                                <div class="v2-metrics-charts">
+                                    <div class="v2-metrics-card">
+                                        <div class="v2-metrics-card__label">CPU %</div>
+                                        <div class="v2-metrics-card__canvas-wrap">
+                                            <canvas id="v2-metrics-chart-cpu" aria-label="CPU percent chart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="v2-metrics-card">
+                                        <div class="v2-metrics-card__label">Memory (RSS)</div>
+                                        <div class="v2-metrics-card__canvas-wrap">
+                                            <canvas id="v2-metrics-chart-ram" aria-label="RAM megabytes chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="v2-expand-rail v2-expand-rail--right" id="v2-expand-right" title="Show Chat panel" aria-label="Show Chat panel">◀</button>
+
+            <div class="v2-resizer v2-resizer--right" id="v2-resizer-right" title="Resize chat width"></div>
+
+            <!-- Split 3: Chat -->
+            <aside class="console-v2-chat">
+                <div class="v2-panel-toolbar">
+                    <span style="flex:1;font-size:11px;opacity:0.75;padding-left:4px;">Assistant</span>
+                    <button type="button" class="v2-icon-btn" id="v2-toggle-right" title="Collapse / expand chat">▶</button>
+                </div>
+                <nav class="panel-tabs panel-tabs--chat">
+                    <button type="button" data-tab="chat-model" class="active">
+                        <span class="tab-icon tab-icon-svg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg></span>
+                        <span>Chat</span>
+                    </button>
+                </nav>
+                <div id="tab-chat-model" class="panel-tab active" data-section="chat-model">
+                    <div class="chat-panel">
+                        <div class="chat-toolbar">
+                            <div class="chat-toolbar-left">
+                                <button class="toolbar-btn chat-config-toggle" id="chat-config-toggle" title="Show configuration" aria-pressed="false">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h1M3 12H2M12 20v1M12 3V2"/></svg>
+                                </button>
+                                <span class="chat-model-badge" id="chat-model-badge">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
+                                    <span id="chat-model-label">gpt-4o</span>
+                                </span>
+                            </div>
+                            <div class="chat-toolbar-right">
+                                <button class="toolbar-btn" id="chat-copy-btn" title="Copy last response">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                                <button class="toolbar-btn" id="chat-clear-btn" title="Clear history">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chat-config-panel" id="chat-config-panel" aria-hidden="true">
+                            <div class="chat-config-inner">
+                                <div class="chat-config-field">
+                                    <label for="chat-config-model">Model</label>
+                                    <select id="chat-config-model">
+                                        <option value="gpt-4o">gpt-4o</option>
+                                        <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                        <option value="gpt-4-turbo">gpt-4-turbo</option>
+                                        <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                                        <option value="claude-3-5-sonnet">claude-3-5-sonnet</option>
+                                        <option value="claude-3-haiku">claude-3-haiku</option>
+                                        <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                    </select>
+                                </div>
+                                <div class="chat-config-field">
+                                    <label for="chat-config-temperature">Temperature <span id="chat-temp-display">0.7</span></label>
+                                    <input type="range" id="chat-config-temperature" min="0" max="2" step="0.1" value="0.7">
+                                </div>
+                                <div class="chat-config-field">
+                                    <label for="chat-config-max-tokens">Max tokens</label>
+                                    <input type="number" id="chat-config-max-tokens" min="64" max="8192" step="64" value="1024" style="width:90px;">
+                                </div>
+                                <div class="chat-config-field chat-config-field--full">
+                                    <label for="chat-config-system">System prompt</label>
+                                    <textarea id="chat-config-system" placeholder="You are a helpful assistant..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-history" id="chat-history">
+                            <div class="chat-history-empty" id="chat-history-empty">
+                                <div class="chat-history-empty-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48" opacity="0.35"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <div>No messages yet</div>
+                                <div style="font-size:11px; margin-top:4px; opacity:0.5;">Configure the model above and start a conversation</div>
+                            </div>
+                        </div>
+                        <div class="chat-composer" id="chat-composer">
+                            <div class="chat-attachments" id="chat-attachments"></div>
+                            <div class="chat-composer-row">
+                                <div class="chat-composer-actions-left">
+                                    <button class="chat-action-btn" id="chat-attach-file" title="Attach file">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    </button>
+                                    <button class="chat-action-btn" id="chat-attach-image" title="Attach image">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    </button>
+                                    <button class="chat-action-btn" id="chat-attach-url" title="Add URL context">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    </button>
+                                </div>
+                                <textarea class="chat-input" id="chat-input" placeholder="Type a message… (Enter to send, Shift+Enter for new line)" rows="1"></textarea>
+                                <button class="chat-send-btn" id="chat-send-btn" title="Send (Enter)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </button>
+                            </div>
+                            <input type="file" id="chat-file-input" hidden multiple>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+        <div id="tab-history" class="panel-tab" data-section="history" hidden>
+            <div class="exec-history-toolbar">
+                <span class="exec-history-toolbar__title">Execution History</span>
+                <button class="exec-history-toolbar__btn" id="exec-history-refresh" title="Refresh">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Refresh
+                </button>
+            </div>
+            <div id="exec-history-root"></div>
+        </div>
+        </div>
+        <!-- end .console-body-main -->
+
+
+        <!-- Split View Container (disabled — Workspace tab hosts the Python editor)
+        <div class="split-container" id="split-container">
+            <div class="split-panel" id="split-panel-console" style="flex: 1;">
+                <div class="split-panel-header">
+                    <span class="panel-title"><span>&gt;_</span><span>Terminal</span></span>
+                    <div class="split-toolbar">
+                        <button class="toolbar-btn" id="split-btn-clear" title="Clear">🗑</button>
+                        <button class="toolbar-btn active" id="split-btn-scroll" title="Auto-scroll">↓</button>
+                    </div>
+                </div>
+                <div class="split-panel-content">
+                    <div class="console-output" id="split-console-output"></div>
+                </div>
+            </div>
+            <div class="split-resizer" id="split-resizer"></div>
+            <div class="split-panel" id="split-panel-code" style="flex: 1;">
+                <div class="split-panel-header">
+                    <span class="panel-title"><span>⟨⟩</span><span>Code</span></span>
+                    <div class="split-toolbar">
+                        <button class="toolbar-btn" id="split-btn-edit" title="Edit">✎</button>
+                        <button class="toolbar-btn saved" id="split-btn-save" title="Saved">✓</button>
+                        <button class="toolbar-btn run" id="split-btn-run" title="Run code (F5)"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></button>
+                        <button class="toolbar-btn ai" id="split-btn-ai" title="AI Code Assistant"><svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="1.5"/></svg></button>
+                    </div>
+                </div>
+                <div class="split-panel-content">
+                    <div class="code-editor-wrap">
+                        <div id="split-code-editor" data-readonly="true"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        -->
+    </div>
+
+    <!-- Socket.IO client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- CodeMirror Python Editor -->
+    <script type="module">
+    (async function() {
+        var editor;
+        var bundleUrl = "{{ url_for('static', filename='js/codemirror-console.bundle.js') }}";
+        var createPythonEditor;
+        
+        try {
+            var m = await import(bundleUrl);
+            createPythonEditor = m.createPythonEditor;
+            
+            var container = document.getElementById('code-editor');
+            editor = createPythonEditor(container, {
+                onChange: function() { 
+                    window.dispatchEvent(new CustomEvent('code-editor-change')); 
+                }
+            });
+        } catch (e) {
+            console.error('CodeMirror load failed:', e);
+            
+            var container = document.getElementById('code-editor');
+            if (container) {
+                var fallback = document.createElement('textarea');
+                fallback.id = 'code-editor-fallback';
+                fallback.placeholder = '# Python code...';
+                fallback.style.cssText = 'width:100%;height:100%;min-height:300px;padding:0.75rem;font-family:var(--font-mono);font-size:13px;background:#0a0e17;border:none;color:#e2e8f0;resize:none;box-sizing:border-box;';
+                container.appendChild(fallback);
+                fallback.addEventListener('input', function() { 
+                    window.dispatchEvent(new CustomEvent('code-editor-change')); 
+                });
+                editor = fallback;
+            }
+        }
+        
+        window.__codeEditor = editor;
+        window.__splitCodeEditor = null; /* split view disabled - Code tab replaces split container */
+        window.dispatchEvent(new Event('codemirror-ready'));
+        
+        var currentHighlight = null;
+        
+        window.addEventListener('editor-goto-line', function(e) {
+            var lineNumber = e.detail && e.detail.line;
+            if (!lineNumber || !window.__codeEditor) return;
+            
+            var editorEl = document.querySelector('#code-editor .cm-editor');
+            if (!editorEl) return;
+            
+            var lines = editorEl.querySelectorAll('.cm-line');
+            var targetLine = lines[lineNumber - 1];
+            
+            if (!targetLine) return;
+            
+            if (currentHighlight) {
+                currentHighlight.classList.remove('outline-highlight');
+            }
+            
+            targetLine.classList.add('outline-highlight');
+            currentHighlight = targetLine;
+            
+            targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            setTimeout(function() {
+                if (currentHighlight) {
+                    currentHighlight.classList.remove('outline-highlight');
+                    currentHighlight = null;
+                }
+                document.querySelectorAll('.cm-line.outline-highlight').forEach(function(el) {
+                    el.classList.remove('outline-highlight');
+                });
+            }, 3000);
+        });
+    })();
+    </script>
+
+    <!-- Prism.js syntax highlighting (for code output) -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <!-- File upload with progress (required for form file fields) -->
+    <script src="{{ url_for('static', filename='js/upload_progress.js') }}"></script>
+    <!-- Plugin Console Core - Command line UI (injectable, single source of truth) -->
+    <script src="{{ url_for('static', filename='js/console/plugin-console-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/workspace-documents.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/workspace-document-stage.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/console-session.js') }}"></script>
+    <!-- Console Application - IDE (menu, explorer, tabs, code editor) -->
+    <script src="{{ url_for('static', filename='js/console/console-app.js') }}"></script>
+    
+    <!-- Console Application - Socket.IO Event Handlers -->
+    <script src="{{ url_for('static', filename='js/console/console-socket.js') }}"></script>
+    <!-- Chat Model Tab -->
+    <script src="{{ url_for('static', filename='js/console/chat-model.js') }}"></script>
+    <!-- Execution Log History Tab -->
+    <script src="{{ url_for('static', filename='js/console/execution-log-history.js') }}"></script>
+    <!-- SSE in-page toast notifications (execution complete) -->
+    <script src="{{ url_for('static', filename='js/console/sse-notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/console-v2-layout.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/console/console-system-metrics.js') }}"></script>
+
+    <script>
+    /**
+     * Global Ctrl+C handler — fires regardless of which element has focus.
+     * Sends a "stop <execution_id>" console command via Socket.IO.
+     * Works both in Terminal tab and Engine Console form.
+     */
+    document.addEventListener('keydown', function (e) {
+        if (!e.ctrlKey || e.key !== 'c') return;
+        const Console = window.HytheraConsole;
+        if (!Console || !Console.state) return;
+        const execId = Console.state.currentExecutionId;
+        if (!execId) return;
+        e.preventDefault();
+        const socket = Console.state.socket;
+        if (socket && socket.connected) {
+            socket.emit('console_command', { raw_command: 'stop ' + execId });
+            Console.state.currentExecutionId = null;
+            // Visual feedback in terminal
+            if (typeof Console.addSystemMessage === 'function') {
+                Console.addSystemMessage('^C — stop sent for: ' + execId, 'warning');
+            }
+        }
+    });
+    </script>
+</body>
+</html>

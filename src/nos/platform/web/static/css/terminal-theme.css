@@ -1,0 +1,213 @@
+
+:root {
+    --term-bg: #0c0c0c;
+    --term-panel: #1a1a1a;
+    --term-border: #333;
+    --term-text: #cccccc;
+    --term-muted: #858585;
+    --term-accent: #4ec9b0;
+    --term-accent-blue: #9cdcfe;
+    --term-warning: #dcdcaa;
+    --term-error: #f48771;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    background: var(--term-bg);
+    color: var(--term-text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Panels / Cards */
+.terminal-panel,
+.term-panel,
+.playground-content,
+.content,
+.engine,
+.dashboard,
+.page,
+.terminal {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--term-panel);
+    border: 1px solid var(--term-border);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.terminal-panel h2,
+.term-panel h2,
+.playground-content h2,
+.content h2,
+.engine h2,
+.dashboard h2,
+.page h2 {
+    color: var(--term-accent);
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.terminal-panel p,
+.term-panel p,
+.playground-content p,
+.content p,
+.engine p,
+.page p {
+    color: var(--term-muted);
+    line-height: 1.6;
+}
+
+/* Links */
+a {
+    color: var(--term-accent-blue);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Buttons */
+.btn,
+button[type="submit"] {
+    background: var(--term-panel);
+    color: var(--term-accent);
+    border: 1px solid var(--term-border);
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.btn:hover,
+button[type="submit"]:hover {
+    background: var(--term-border);
+    border-color: var(--term-accent);
+}
+
+/* Forms */
+input, select, textarea {
+    box-sizing: border-box;
+    background: var(--term-bg);
+    color: var(--term-text);
+    border: 1px solid var(--term-border);
+    padding: 0.5rem 0.75rem;
+    font-family: inherit;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--term-accent);
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--term-border);
+    text-align: left;
+}
+th {
+    background: var(--term-panel);
+    color: var(--term-accent);
+}
+
+/* Input with terminal styling (for overrides) */
+.term-input {
+    background: var(--term-bg) !important;
+    color: var(--term-text) !important;
+    border: 1px solid var(--term-border) !important;
+}
+
+/* wx-data-grid: PowerShell/terminal theme (shadow DOM inherits from host) */
+wx-data-grid {
+    --wx-dg-bg: var(--term-panel);
+    --wx-dg-text: var(--term-text);
+    --wx-dg-border: var(--term-border);
+    --wx-dg-row-even: var(--term-panel);
+    --wx-dg-row-odd: var(--term-bg);
+    --wx-dg-header-bg: var(--term-panel);
+    --wx-dg-icon-color: var(--term-accent);
+    --wx-dg-sort-btn-color: var(--term-accent);
+    --wx-dg-toolbar-btn-color: var(--term-accent);
+}
+
+/* wx-form-loader: PowerShell/terminal theme (shadow DOM inherits from host) */
+wx-form-loader {
+    --wx-fl-bg: var(--term-panel);
+    --wx-fl-text: var(--term-text);
+    --wx-fl-border: var(--term-border);
+    --wx-fl-font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    --wx-fl-form-shadow: none;
+    --wx-fl-form-radius: 0;
+
+    --wx-fl-title-color: var(--term-accent);
+    --wx-fl-description-color: var(--term-muted);
+    --wx-fl-label-color: var(--term-text);
+    --wx-fl-required-color: var(--term-error);
+    --wx-fl-help-color: var(--term-muted);
+
+    --wx-fl-input-bg: var(--term-bg);
+    --wx-fl-input-color: var(--term-text);
+    --wx-fl-input-border: 1px solid var(--term-border);
+    --wx-fl-input-border-radius: 0;
+    --wx-fl-input-focus-border-color: var(--term-accent);
+    --wx-fl-input-focus-shadow: 0 0 0 2px rgba(78, 201, 176, 0.25);
+    --wx-fl-input-disabled-bg: var(--term-panel);
+    --wx-fl-input-disabled-color: var(--term-muted);
+    --wx-fl-input-readonly-bg: var(--term-panel);
+    --wx-fl-input-readonly-color: var(--term-text);
+    --wx-fl-input-readonly-border: 1px solid var(--term-border);
+    --wx-fl-input-readonly-cursor: default;
+
+    --wx-fl-accent: var(--term-accent);
+    --wx-fl-accent-hover: var(--term-accent-blue);
+    --wx-fl-accent-foreground: var(--term-bg);
+
+    --wx-fl-password-toggle-bg: var(--term-bg);
+    --wx-fl-password-toggle-color: var(--term-muted);
+    --wx-fl-password-toggle-hover-color: var(--term-text);
+
+    --wx-fl-invalid-bg: rgba(244, 135, 113, 0.1);
+    --wx-fl-invalid-border: 1px solid var(--term-error);
+    --wx-fl-validation-msg-bg: rgba(244, 135, 113, 0.15);
+    --wx-fl-validation-msg-color: var(--term-error);
+    --wx-fl-validation-msg-border: 1px solid var(--term-error);
+
+    --wx-fl-btn-secondary-bg: var(--term-panel);
+    --wx-fl-btn-secondary-color: var(--term-text);
+    --wx-fl-btn-secondary-hover-bg: var(--term-border);
+    --wx-fl-btn-primary-bg: var(--term-accent);
+    --wx-fl-btn-primary-color: var(--term-bg);
+    --wx-fl-btn-primary-hover-bg: var(--term-accent-blue);
+
+    --wx-fl-tabs-border-color: var(--term-border);
+    --wx-fl-tab-active-color: var(--term-accent);
+    --wx-fl-tab-hover-color: var(--term-accent-blue);
+
+    --wx-fl-steps-header-border-color: var(--term-border);
+    --wx-fl-steps-counter-color: var(--term-muted);
+    --wx-fl-step-arrow-bg: transparent;
+    --wx-fl-step-arrow-hover-bg: var(--term-border);
+}
+
+/* Utility */
+.term-success { color: var(--term-accent); }
+.term-error { color: var(--term-error); }
+.term-warning { color: var(--term-warning); }
+.term-muted { color: var(--term-muted); }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .terminal-panel, .term-panel, .playground-content, .content, .engine, .dashboard, .page {
+        padding: 1rem;
+        margin: 0 0.5rem 1rem;
+    }
+}

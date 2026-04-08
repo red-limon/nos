@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block page_title %}RedLimon — Community{% endblock %}
+{% block extra_head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+{% block extra_css %}
+    <style>
+        :root {
+            --rl-bg: #0f0a0a;
+            --rl-card: rgba(30, 12, 12, 0.92);
+            --rl-border: rgba(229, 57, 53, 0.35);
+            --rl-accent: #ff5252;
+            --rl-accent-secondary: #ffeb3b;
+            --rl-text: #f5e6e6;
+            --rl-text-muted: #c4a5a5;
+        }
+        .redlimon-page { min-height: 100vh; font-family: 'Outfit', system-ui, sans-serif; background: var(--rl-bg); color: var(--rl-text); padding: 4rem 1.5rem 2rem; }
+        .community-card { max-width: 480px; margin: 0 auto; background: var(--rl-card); border: 1px solid var(--rl-border); border-radius: 12px; padding: 2rem; }
+        .community-card h1 { color: var(--rl-accent); font-size: 1.5rem; margin-bottom: 1rem; text-align: center; }
+        .community-card p { color: var(--rl-text-muted); line-height: 1.7; margin-bottom: 1rem; }
+        .community-card a { color: var(--rl-accent); text-decoration: none; }
+        .community-card a:hover { text-decoration: underline; }
+        .waiting-list { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--rl-border); }
+        .waiting-list label { display: block; color: var(--rl-text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .waiting-list input { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--rl-border); border-radius: 8px; background: rgba(15,10,10,0.6); color: var(--rl-text); font-family: inherit; margin-bottom: 0.75rem; }
+        .waiting-list input::placeholder { color: var(--rl-text-muted); opacity: 0.7; }
+        .waiting-list button { padding: 0.6rem 1.25rem; background: var(--rl-accent); color: #0f0a0a; border: none; border-radius: 8px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity 0.2s; }
+        .waiting-list button:hover { opacity: 0.9; }
+        .contact { margin-top: 1.5rem; font-size: 0.9rem; color: var(--rl-text-muted); }
+        .contact a { color: var(--rl-accent-secondary); }
+        .back-link { display: block; text-align: center; margin-top: 2rem; }
+    </style>
+{% endblock %}
+{% block body %}
+<div class="redlimon-page">
+    <div class="community-card">
+        <h1>Welcome to the Community</h1>
+        <p>Join developers and makers building with Orkestro and RedLimon. Share ideas, get support, and stay ahead of new features.</p>
+        <p>Sign up for the waiting list to be notified when the community space launches.</p>
+        <div class="waiting-list">
+            <form action="#" method="post" onsubmit="return false;">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                <button type="submit">Join waiting list</button>
+            </form>
+        </div>
+        <p class="contact">Questions? Get in touch: <a href="mailto:community@redlimon.dev">community@redlimon.dev</a></p>
+        <a href="{{ url_for('web.redlimon') }}" class="back-link">← Back to RedLimon</a>
+    </div>
+</div>
+{% endblock %}
